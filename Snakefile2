@@ -1,0 +1,106 @@
+workdir: os.getcwd()
+
+# ---------------------------------------------------------------------------- #
+#                           Supplementary Figure 4                             #
+# ---------------------------------------------------------------------------- #
+# Evolution of Negative Binomial distribution parameters as a function of the
+# number of shuffles in OLOGRAM
+
+rule all:
+    input:  "output/supp_fig4/S_mean_boxplot.pdf", "output/supp_fig4/S_var_boxplot.pdf"
+
+
+# Generate fake beds with different lengths in an artificial genome
+rule artificial_simple:
+    output:
+        a="output/supp_fig4/data/A.bed",
+        b="output/supp_fig4/data/B.bed",
+        genome="output/supp_fig4/data/artificial.genome",
+
+    shell: '''
+    echo "chr1\t100000000\nchr2\t100000000\nchr3\t100000000\nchr4\t100000000\nchr5\t100000000\n" > {output.genome}
+    bedtools random -g {output.genome} -n 10000 -l 1000 -seed 42021756 | bedtools sort > {output.a}
+    bedtools random -g {output.genome} -n 10000 -l 2000 -seed 83704973 | bedtools sort > {output.b}
+    '''
+
+
+# Split across three steps with different depth. Try a variety of Monte Carlo depths.
+
+# Change the number of minibatches (total shuffle number is 10 times it) and
+# re-run the analysis, collecting results and histograms
+
+# Parallelization of these tasks would be useful, but I have not enabled
+# it to prevent files form being overwritten since the results filename is the date.
+# TODO Separate it into different directories.
+
+
+rule minibatch_small:
+    input: a="output/supp_fig4/data/A.bed",  b="output/supp_fig4/data/B.bed", genome="output/supp_fig4/data/artificial.genome"
+    output: "output/supp_fig4/small_done"
+    shell:'''
+    MINIBATCH_SIZE=10
+    for MINIBATCH_NB in 1 2 5 10 15 20 35
+    do
+      for TRYNUMBER in $(seq 1 40)
+      do
+        gtftk ologram -ms $MINIBATCH_SIZE -mn $MINIBATCH_NB -p {input.a} \
+            --more-bed {input.b} -z -c {input.genome} -V 3 -s ${{TRYNUMBER}} \
+            --more-bed-labels artificial_minibatches_${{MINIBATCH_NB}}_try_num_${{TRYNUMBER}} \
+            --force-chrom-peak   --force-chrom-more-bed  -K output/supp_fig4/ologram_tmp\
+            -o output/supp_fig4/ologram_output
+      done
+    done
+    touch {output}
+    '''
+
+rule minibatch_medium:
+    input: a="output/supp_fig4/data/A.bed",  b="output/supp_fig4/data/B.bed", genome="output/supp_fig4/data/artificial.genome", p="output/supp_fig4/small_done"
+    output: "output/supp_fig4/medium_done"
+    shell:'''
+    MINIBATCH_SIZE=10
+    for MINIBATCH_NB in 50 100 250
+    do
+      for TRYNUMBER in $(seq 1 8)
+      do
+        gtftk ologram -ms $MINIBATCH_SIZE -mn $MINIBATCH_NB -p {input.a} \
+            --more-bed {input.b} -z -c {input.genome} -V 3 -s ${{TRYNUMBER}} \
+            --more-bed-labels artificial_minibatches_${{MINIBATCH_NB}}_try_num_${{TRYNUMBER}} \
+            --force-chrom-peak   --force-chrom-more-bed  -K output/supp_fig4/ologram_tmp\
+            -o output/supp_fig4/ologram_output
+      done
+    done
+    touch {output}
+    '''
+
+rule minibatch_large:
+    input:a="output/supp_fig4/data/A.bed",  b="output/supp_fig4/data/B.bed", genome="output/supp_fig4/data/artificial.genome", p="output/supp_fig4/medium_done"
+    output: "output/supp_fig4/large_done"
+    shell:'''
+    MINIBATCH_SIZE=10
+    MINIBATCH_NB=500
+    for TRYNUMBER in $(seq 1 3)
+    do
+        gtftk ologram -ms $MINIBATCH_SIZE -mn $MINIBATCH_NB -p {input.a} \
+            --more-bed {input.b} -z -c {input.genome} -V 3 -s ${{TRYNUMBER}} \
+            --more-bed-labels artificial_minibatches_${{MINIBATCH_NB}}_try_num_${{TRYNUMBER}} \
+            --force-chrom-peak   --force-chrom-more-bed  -K output/supp_fig4/ologram_tmp\
+            -o output/supp_fig4/ologram_output
+    done
+    touch {output}
+    '''
+
+
+# Concatenate all the tsv files giving the results for further processing
+rule concat_all:
+    input:"output/supp_fig4/small_done","output/supp_fig4/medium_done","output/supp_fig4/large_done"
+    output: r="output/supp_fig4/merged_ologram_test.tsv"
+    shell:'''
+    cat output/supp_fig4/ologram_output/*.tsv > {output.r}
+    '''
+
+# Launch the Python script to create the result boxplots
+rule produce_fig:
+    input: "output/supp_fig4/merged_ologram_test.tsv"
+    output: "output/supp_fig4/S_mean_boxplot.pdf", "output/supp_fig4/S_var_boxplot.pdf"
+    script:
+        "scripts/produce_supp_fig4.py"
