@@ -1,0 +1,7 @@
+name: ologram_modl_env
+channels:
+  - bioconda
+dependencies:
+- pygtftk
+- pip:
+    - "--editable=git+https://https://github.com/dputhier/pygtftk/pygtftk.git@8d757a75ffc271ff16238f159c8dd07dfdd73b09#egg=pygtftk-master"
