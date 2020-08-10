@@ -1,111 +1,209 @@
 import os
 import glob
-from snakemake.utils import R
 import re
 
 workdir: os.getcwd()
 
 
-REGIONS = ["exon-11-363", "exon-1-2",
-           "exon-2-3", "exon-3-6",
-           "exon-6-11", 'introns',
-           'promoters', 'exons',
-           'random']
+# Query the final heatmap, the trees and the benchmark
+rule final:
+    input: 
+        "output/supp_fig/comparison_benchmark.txt",
+        expand("output/ologram/ologram_result_tree_{cell_line}.pdf", cell_line = ['mcf7', 'mcf7_filtered','artificial'])
 
-H3K4_TYPE = ['H3K4me3_ENCFF616DLO_midpoint',
-             'H3K4me3_ENCFF616DLO']
-# Genome size
-# See https://tinyurl.com/y6j367hv
 
-HG38_SIZE = 2913022398
 
-rule all:
-    conda: "env/conda.yaml"
-    input:  "output/exons_classes/ologram_exon-11-363_pygtftk.bed"
-            #expand("output/supp_table2/binomial_test/{h3k4type}/binomial_test_{region}.txt", region=REGIONS, h3k4type=H3K4_TYPE)
+# ---------------------------------------------------------------------------- #
+#                                 Data retrieval                               #
+# ---------------------------------------------------------------------------- #
 
-#--------------------------------------------------------------
-# Retrieve a set of peaks (GRCh38, H3K4me3, Homo sapiens K562,
-# ENCFF616DLO). Keep only conventional chromosomes
-#--------------------------------------------------------------
 
-rule get_h3k4me3:
-    output: "input/peaks/H3K4me3_ENCFF616DLO.bed"
-    conda: "env/conda.yaml"
-    shell: '''
-    wget https://www.encodeproject.org/files/ENCFF616DLO/@@download/ENCFF616DLO.bed.gz -O H3K4me3_ENCFF616DLO.bed.gz
-    gunzip -f H3K4me3_ENCFF616DLO.bed.gz
-    cat H3K4me3_ENCFF616DLO.bed | perl -ne 'print if(/^chr[0-9XY]+\t/)' > {output}
-    rm -f H3K4me3_ENCFF616DLO.bed
-    '''
+rule prepare_incl:
+    """
+    Get H3K27ac ChIP-seq peaks to act as background for FOXA1 in MCF7, where we restrict the shuffling to those regions only.
+    Then move the query (FOXA1 for MCF7) to prevent them from being used by MODL.
+    """
+    output:
+        hist = "output/H3K27ac_mcf7.bed",
+        query = "input/foxa1_mcf7.bed.gz"
 
-#--------------------------------------------------------------
-# Retrieve a GTF from ensembl (Homo sapiens, release 92)
-# add 'chr' prefix (-C) and select conventional chromosomes
-#--------------------------------------------------------------
 
-rule get_gtf_from_ensembl:
-    conda: "env/conda.yaml"
-    output: "input/Homo_sapiens_GRCh38_92_chr.gtf"
-    shell: '''
-    gtftk  retrieve -V 1 -Ccd -r 92 -s homo_sapiens | \
-    gtftk select_by_regexp -V 1 -k chrom -r '^chr[0-9XY]+$'  -o {output}
-    '''
 
-#--------------------------------------------------------------
-# Retrieve chromosome sizes subsequently used by Bedtools
-#--------------------------------------------------------------
-
-rule get_chrom_size:
-    conda: "env/conda.yaml"
-    output: "input/hg38.chromInfo"
-    shell: '''
-    mysql --user=genome --host=genome-mysql.cse.ucsc.edu -A \
-       -e "select chrom, size from hg38.chromInfo" | \
-       perl -ne 'print if(/^chr[0-9XY]+\t/)' > {output}
-    '''
-
-#--------------------------------------------------------------
-# Supplementary file 1:
-# We calculate the significance of combinaison of epigenetic marks
-# falling in GTF-defined numbered exons. 
-#--------------------------------------------------------------
-
-rule get_exon_classes:
-    conda: "env/conda.yaml"
-    input: gtf="input/Homo_sapiens_GRCh38_92_chr.gtf", peak="input/peaks/H3K4me3_ENCFF616DLO.bed"
-    output: pdf="output/supp_fig2/supplfig2.pdf", \
-            bed1="output/exons_classes/ologram_exon-11-363_pygtftk.bed", \
-            bed2="output/exons_classes/ologram_exon-1-2_pygtftk.bed", \
-            bed3="output/exons_classes/ologram_exon-2-3_pygtftk.bed", \
-            bed4="output/exons_classes/ologram_exon-3-6_pygtftk.bed", \
-            bed5="output/exons_classes/ologram_exon-6-11_pygtftk.bed"
     shell: """
-       mkdir -p output/exons_classes
-       gtftk add_exon_nb -k exon_nbr -i {input.gtf} | \
-       gtftk discretize_key -p -d exon_nbr_cat -n 5 -k exon_nbr | \
-       gtftk ologram -p {input.peak} -c hg38 -D -n -y -m exon_nbr_cat \
-       -pf {output.pdf}  -k 8 -V 3 \
-       -j summed_bp_overlaps_true -k 8 -D -o output/exons_classes \
-       -K output/exons_classes/tmp
-    mv output/supp_fig2/tmp/ologram_exon_nbr_cat__11_0_363_0_*.bed {output.bed1}
-    mv output/supp_fig2/tmp/ologram_exon_nbr_cat__1_0_2_0_*.bed {output.bed2}
-    mv output/supp_fig2/tmp/ologram_exon_nbr_cat__2_0_3_0_*.bed {output.bed3}
-    mv output/supp_fig2/tmp/ologram_exon_nbr_cat__3_0_6_0_*.bed {output.bed4}
-    mv output/supp_fig2/tmp/ologram_exon_nbr_cat__6_0_11_0_*.bed {output.bed5}
+        # Get histone
+        wget https://www.encodeproject.org/files/ENCFF784QFH/@@download/ENCFF784QFH.bed.gz -O H3K27ac_mcf7_ENCFF784QFH.bed.gz
+        gunzip -f H3K27ac_mcf7_ENCFF784QFH.bed.gz
+        cat H3K27ac_mcf7_ENCFF784QFH.bed | perl -ne 'print if(/^chr[0-9XY]+\t/)' > {output.hist}
+        rm -f H3K27ac_mcf7_ENCFF784QFH.bed
+
+        # Once done, move future queries
+        mv input/mcf7/foxa1.bed.gz {output.query}
     """
 
-def get_label(wildcards):
-    return re.sub('\W+', '_', wildcards.region)
+rule prepare_artificial:
+    """
+    Prepare artificial demonstration data.
+    """
 
-rule supp_figure_1:
-    conda: "env/conda.yaml"
-    input:  bed="input/peaks/H3K4me3_ENCFF616DLO.bed", region="output/exons_classes/ologram_{region}_pygtftk.bed"
-    output: pdf="output/supp_table2/ologram_{region}/ologram_{region}_regions.pdf"
-    params: label=get_label
-    shell: '''
-    mkdir -p output/supp_table2/ologram/tmp
-    gtftk ologram -z -y -V 2 -c hg38 -p {input.bed} -k 8 -o output/supp_table2/ologram_{wildcards.region} -D \
-    -b {input.region} -K output/supp_table2/ologram_{wildcards.region}/tmp -pf {output.pdf} -l {params.label}
-    '''
+    output:
+        query = "output/artificial/query.bed", incl = "output/artificial/incl.bed",
+        a =  "output/artificial/A.bed", b =  "output/artificial/B.bed", c =  "output/artificial/C.bed", d =  "output/artificial/D.bed",
+    
+    shell: """
+    # TODO To add some noise to that, remove at random a few regions from all those files ? Not needed for proof of concept
 
+    SIZE=1000
+    LENGTH=200000
+
+    mkdir output; mkdir output/artificial
+
+    # Generate A
+    bedtools random -n $((4*SIZE)) -l $((LENGTH)) -seed 687152 -g input/hg38.genome > {output.query}
+    cp {output.query} {output.a}
+
+    # Generate B and C
+    tail -n $((2*SIZE)) {output.a} > {output.b}
+    tail -n $((1*SIZE)) {output.b} > {output.c}
+
+    # Generate C D
+    bedtools shuffle -i {output.query} -g input/hg38.genome -excl {output.query} -noOverlapping -seed 265159 > {output.d}
+
+    # Generate incl
+    bedtools slop -b 500 -i {output.query} -g input/hg38.genome > {output.incl}
+    """
+
+
+
+# ---------------------------------------------------------------------------- #
+#                                 Data processing                              #
+# ---------------------------------------------------------------------------- #
+
+# Get the list of files in the `input/mcf7` directory
+
+
+def get_peaks_mcf7(wildcards):
+    file_list = glob.glob('input/mcf7/*bed')
+    return " ".join(file_list)
+
+def how_many_peaks_mcf7(wildcards):
+    file_list = glob.glob('input/mcf7/*bed')
+    return len(file_list)
+
+# TODO : do not pass the queries (FOXA1 for mcf7 and FOS for K562 !)
+
+rule compute_combi_enrichment_mcf7:
+    """
+    For a the MCF7 cell line, compute the enrichment in n-wise TF combinations using OLOGRAM-MODL
+    The query is FOXA1.
+    """
+    input: 
+        query = 'input/foxa1_mcf7.bed.gz',
+        incl = "output/H3K27ac_mcf7.bed"
+    params:
+        trs = get_peaks_mcf7,
+        minibatch_number = 6, minibatch_size = 5, threads = 6,
+
+    output: 'output/ologram_result_mcf7/00_ologram_stats.tsv', 
+
+
+    # TODO : minibatch size, number, and threads numbers should be parameters
+
+    shell: """
+    gtftk ologram -z -c hg38 -p {input.query} |\                      # The query
+        --more-bed {params.trs} 
+        -o ologram_results_mcf7 --force-chrom-peak --force-chrom-more-bed  |\
+        -V 3 -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} |\          # Verbosity, threads, number and size of minibatches
+        --more-bed-multiple-overlap             # Take multiple overlaps
+        --bed-incl {input.incl} # Shuffle only in the CRM
+        --no-date # So filename is exact
+    """
+
+rule compute_combi_enrichment_mcf7_filtered:
+    """
+    Same but filter the resutls this time
+    """
+
+    input: 
+        query = 'input/foxa1_mcf7.bed.gz',
+        incl = "output/H3K27ac_mcf7.bed"
+
+    params:
+        trs = get_peaks_mcf7,
+        size = 4,                       # NOT SURE... if the dict learning learns very big words they will be discarded, not truncated ! Maybe don't and see what happens
+                                        # Maybe simply do exact like I originally intended
+        
+        minibatch_number = 6, minibatch_size = 5, threads = 6,
+        max_combis = 20
+
+    output:'output/ologram_result_mcf7_filtered/00_ologram_stats.tsv'
+
+    shell: """
+    # Do the same but WITH MODL and CAPPED AT 4. Likely not display it or only in supp mat
+    gtftk ologram -z -c hg38 -p {input.query}  --more-bed {params.trs} 
+        -o ologram_results_mcf7_filtered --force-chrom-peak --force-chrom-more-bed  -V 3 -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} |\    
+        --more-bed-multiple-overlap --bed-incl {input.incl} |\
+        --multiple-overlap-max-number-of-combinations     {params.max_combis}
+        --multiple-overlap-target-combi-size {params.size}            
+        --no-date
+    """
+
+# ---------------------------------------------------------------------------- #
+#                              Benchmarking                                    #
+# ---------------------------------------------------------------------------- #
+
+rule produce_modl_comparison:
+    """
+    Benchmarking MODL on an artificial data test case (AB,ABCD,EF, and poisson noise)
+    and comparing it to Apriori.
+    """
+    output: "output/supp_fig/comparison_benchmark.txt"
+    script:
+        "scripts/modl_comparison.py"
+
+
+
+rule run_artificial:
+    """
+    Run on artificial data
+    """
+
+    input:
+        query = "output/artificial/query.bed", incl = "output/artificial/incl.bed",
+        a =  "output/artificial/A.bed", b =  "output/artificial/B.bed", c =  "output/artificial/C.bed", d =  "output/artificial/D.bed",
+
+    output:
+        'output/ologram_result_artificial/00_ologram_stats.tsv'
+
+    params:
+        minibatch_number = 8, minibatch_size = 3, threads = 6,
+
+    shell:"""
+    gtftk ologram -z -c hg38 -p {input.query} --more-bed {input.a} {input.b} {input.c} {input.d} -o output/ologram_result_artificial |\
+     --force-chrom-peak --force-chrom-more-bed -V 3 -k ${params.threads} -mn ${params.minibatch_number} -ms ${params.minibatch_size} |\
+     --more-bed-multiple-overlap --bed-incl {input.incl} --no-date
+    """
+
+# ---------------------------------------------------------------------------- #
+#                                 Visual                                       #
+# ---------------------------------------------------------------------------- #
+
+# TODO Hardcoded for now. Of course, this is no longer germane when using different queries and cell lines.
+def get_queryname(wildcards):
+    run = wildcards.cell_line
+    if run == "mcf7" or "mcf7_filtered" : return "FOXA1"
+    if run == "artificial": return "Query"
+    return " ".join(file_list)
+
+
+rule treeify:
+    """
+    For visual purposes.
+    Turns an OLOGRAM-MODL result file into a graph of the found combinations.
+    """
+    input: "output/ologram_result_{cell_line}/00_ologram_stats.tsv"
+    output: "output/ologram/ologram_result_tree_{cell_line}.pdf"
+    params:
+        queryname = get_queryname
+    shell:"""
+    gtftk ologram_modl_treeify -i {input} -o {output} -l {params.queryname}
+    """
