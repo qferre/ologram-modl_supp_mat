@@ -25,9 +25,7 @@ rule prepare_incl:
     """
     output:
         hist = "output/H3K27ac_mcf7.bed",
-        query = "input/foxa1_mcf7.bed.gz"
-
-
+        query = "input/foxa1_mcf7.bed"
 
     shell: """
         # Get histone
@@ -36,9 +34,13 @@ rule prepare_incl:
         cat H3K27ac_mcf7_ENCFF784QFH.bed | perl -ne 'print if(/^chr[0-9XY]+\t/)' > {output.hist}
         rm -f H3K27ac_mcf7_ENCFF784QFH.bed
 
+        # Unzip all
+        gunzip input/mcf7/*.gz
+
         # Once done, move future queries
-        mv input/mcf7/foxa1.bed.gz {output.query}
+        mv input/mcf7/foxa1.bed {output.query}
     """
+
 
 rule prepare_artificial:
     """
@@ -51,14 +53,10 @@ rule prepare_artificial:
     
     shell: """
     # TODO To add some noise to that, remove at random a few regions from all those files ? Not needed for proof of concept
-
-    SIZE=1000
-    LENGTH=200000
-
     mkdir output; mkdir output/artificial
 
     # Generate A
-    bedtools random -n $((4*SIZE)) -l $((LENGTH)) -seed 687152 -g input/hg38.genome > {output.query}
+    bedtools random -n $((4*SIZE)) -l $((LENGTH)) -seed 123456 -g input/hg38.genome > {output.query}
     cp {output.query} {output.a}
 
     # Generate B and C
@@ -97,54 +95,53 @@ rule compute_combi_enrichment_mcf7:
     The query is FOXA1.
     """
     input: 
-        query = 'input/foxa1_mcf7.bed.gz',
+        query = 'input/foxa1_mcf7.bed',
         incl = "output/H3K27ac_mcf7.bed"
     params:
         trs = get_peaks_mcf7,
-        minibatch_number = 6, minibatch_size = 5, threads = 6,
+        minibatch_number = 6, minibatch_size = 5, threads = 4,
 
     output: 'output/ologram_result_mcf7/00_ologram_stats.tsv', 
 
-
-    # TODO : minibatch size, number, and threads numbers should be parameters
-
     shell: """
-    gtftk ologram -z -c hg38 -p {input.query} |\                      # The query
-        --more-bed {params.trs} 
+    gtftk ologram -z -c hg38 -p {input.query} --more-bed {params.trs} |\
         -o ologram_results_mcf7 --force-chrom-peak --force-chrom-more-bed  |\
-        -V 3 -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} |\          # Verbosity, threads, number and size of minibatches
-        --more-bed-multiple-overlap             # Take multiple overlaps
-        --bed-incl {input.incl} # Shuffle only in the CRM
-        --no-date # So filename is exact
+        -V 3 -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} |\
+        --more-bed-multiple-overlap --bed-incl {input.incl} --no-date
     """
 
 rule compute_combi_enrichment_mcf7_filtered:
     """
-    Same but filter the resutls this time
+    Run MCF7 on a single shuffle
+
+    This is NOT designed to get results. Only to show which combinations will be selected by MODL.
+
+    Indeed, MODL works only on the matrix of true overlaps and does not care for the shuffles.
     """
 
     input: 
-        query = 'input/foxa1_mcf7.bed.gz',
+        query = 'input/foxa1_mcf7.bed',
         incl = "output/H3K27ac_mcf7.bed"
 
     params:
         trs = get_peaks_mcf7,
-        size = 4,                       # NOT SURE... if the dict learning learns very big words they will be discarded, not truncated ! Maybe don't and see what happens
+        minibatch_number = 1, minibatch_size = 1, threads = 4,
+        max_combis = 20
+        #size = 4,                       # NOT SURE... if the dict learning learns very big words they will be discarded, not truncated ! Maybe don't and see what happens
                                         # Maybe simply do exact like I originally intended
         
-        minibatch_number = 6, minibatch_size = 5, threads = 6,
-        max_combis = 20
+
 
     output:'output/ologram_result_mcf7_filtered/00_ologram_stats.tsv'
 
     shell: """
     # Do the same but WITH MODL and CAPPED AT 4. Likely not display it or only in supp mat
-    gtftk ologram -z -c hg38 -p {input.query}  --more-bed {params.trs} 
-        -o ologram_results_mcf7_filtered --force-chrom-peak --force-chrom-more-bed  -V 3 -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} |\    
+    gtftk ologram -z -c hg38 -p {input.query}  --more-bed {params.trs} |\
+        -o ologram_results_mcf7_filtered --force-chrom-peak --force-chrom-more-bed --no-date |\
+        -V 3 -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} |\    
         --more-bed-multiple-overlap --bed-incl {input.incl} |\
-        --multiple-overlap-max-number-of-combinations     {params.max_combis}
-        --multiple-overlap-target-combi-size {params.size}            
-        --no-date
+        --multiple-overlap-max-number-of-combinations {params.max_combis} #|\
+        #--multiple-overlap-target-combi-size XXX                 
     """
 
 # ---------------------------------------------------------------------------- #
@@ -166,16 +163,15 @@ rule run_artificial:
     """
     Run on artificial data
     """
-
     input:
         query = "output/artificial/query.bed", incl = "output/artificial/incl.bed",
-        a =  "output/artificial/A.bed", b =  "output/artificial/B.bed", c =  "output/artificial/C.bed", d =  "output/artificial/D.bed",
+        a = "output/artificial/A.bed", b = "output/artificial/B.bed", c = "output/artificial/C.bed", d =  "output/artificial/D.bed",
 
     output:
         'output/ologram_result_artificial/00_ologram_stats.tsv'
 
     params:
-        minibatch_number = 8, minibatch_size = 3, threads = 6,
+        minibatch_number = 8, minibatch_size = 3, threads = 4,
 
     shell:"""
     gtftk ologram -z -c hg38 -p {input.query} --more-bed {input.a} {input.b} {input.c} {input.d} -o output/ologram_result_artificial |\
