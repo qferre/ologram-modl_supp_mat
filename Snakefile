@@ -8,8 +8,8 @@ workdir: os.getcwd()
 # Query the final the trees and the benchmark
 rule final:
     input: 
-        "output/supp_fig/comparison_benchmark.txt",
-        expand("output/ologram/ologram_result_tree_{cell_line}.pdf", cell_line = ['mcf7', 'mcf7_filtered','artificial'])
+        "output/benchmark/fig1.png",
+        expand("output/graph/ologram_result_tree_{cell_line}.pdf", cell_line = ['mcf7', 'mcf7_filtered','mcf7_manual','artificial'])
 
 
 # ---------------------------------------------------------------------------- #
@@ -44,14 +44,14 @@ rule prepare_artificial:
     Shuffling is restricted to a slop of 2x query size around the query itself.
     """
     output:
-        query = "output/artificial/query.bed", incl = "output/artificial/incl.bed",
-        a =  "output/artificial/same.bed", b =  "output/artificial/half.bed", c =  "output/artificial/other_half.bed", d =  "output/artificial/neg_control.bed",
+        query = "output/artificial_data/query.bed", incl = "output/artificial_data/incl.bed",
+        a =  "output/artificial_data/same.bed", b =  "output/artificial_data/half.bed", c =  "output/artificial_data/other_half.bed", d =  "output/artificial_data/neg_control.bed",
 
     params:
         size=1000, length=20000
     
     shell: """
-    mkdir -p output/artificial
+    mkdir -p output/artificial_data
 
     # Generate A
     bedtools random -n $((2*{params.size})) -l $(({params.length})) -seed 123456 -g input/hg38.genome > {output.query}
@@ -81,7 +81,7 @@ def get_peaks_mcf7(wildcards):
     return " ".join(file_list)
 
 def get_peaks_artificial(wildcards):
-    file_list = glob.glob('output/artificial/*bed')
+    file_list = glob.glob('output/artificial_data/*bed')
     return " ".join(file_list)
 
 def how_many_peaks_mcf7(wildcards):
@@ -98,7 +98,7 @@ rule compute_combi_enrichment_mcf7:
         incl = "input/crm_mcf7.bed"
     params:
         trs = get_peaks_mcf7,
-        minibatch_number = 10, minibatch_size = 5, threads = 4,
+        minibatch_number = 10, minibatch_size = 5, threads = 8,
 
     output: 'output/ologram_result_mcf7/00_ologram_stats.tsv', 
 
@@ -108,9 +108,6 @@ rule compute_combi_enrichment_mcf7:
         -V 3 -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} \
         --more-bed-multiple-overlap --bed-incl {input.incl} --no-date
     """
-
-
-
 
 
 rule compute_mcf7_modl_selection:
@@ -139,6 +136,21 @@ rule compute_mcf7_modl_selection:
         #--multiple-overlap-target-combi-size XX                 
     """
 
+
+rule mcf7_manual_filtering:
+    """
+    Manual filtering of the displayed combinations for MCF7
+    """
+    input:
+        res = 'output/ologram_result_mcf7/00_ologram_stats.tsv',
+        filtered = 'input/desired_combis.txt'
+    output:
+        'output/ologram_result_mcf7_manual/00_ologram_stats.tsv'
+    shell: """
+    head -n 1 {input.res} > {output}                    # Keep the header
+    grep -w -F -f {input.filtered} {input.res} >> {output}
+    """
+
 # ---------------------------------------------------------------------------- #
 #                              Benchmarking                                    #
 # ---------------------------------------------------------------------------- #
@@ -149,22 +161,34 @@ rule produce_modl_comparison:
     and comparing it to Apriori.
     """
     output: 
-        result = "output/supp_fig/comparison_benchmark.txt",
-        log = "output/supp_fig/comparison_benchmark_LOG.txt",
+        fig1 = "output/benchmark/fig1.png",
+        fig2 = "output/benchmark/fig2.png",
+        fig3 = "output/benchmark/fig3.png"
 
-        fig1 = "output/supp_fig/fig1.png",
-        fig2 = "output/supp_fig/fig2.png"
+    log:
+        err= "output/benchmark/comparison_benchmark_ERROR_LOG.txt",
+        out= "output/benchmark/comparison_benchmark.txt"
 
-    script:
-        "scripts/modl_comparison.py"
+    shell:"""
+    mkdir -p output/benchmark
+
+
+
+    # python scripts/modl_comparison.py 2> {log.err} 1> {log.out}
+
+
+    touch {output.fig1}
+    touch {output.fig2}
+    touch {output.fig3}
+    """
 
 rule run_artificial:
     """
     Run OLOGRAM-MODL on artificial data
     """
     input:
-        query = "output/artificial/query.bed", incl = "output/artificial/incl.bed",
-        a =  "output/artificial/same.bed", b =  "output/artificial/half.bed", c =  "output/artificial/other_half.bed", d =  "output/artificial/neg_control.bed"
+        query = "output/artificial_data/query.bed", incl = "output/artificial_data/incl.bed",
+        a =  "output/artificial_data/same.bed", b =  "output/artificial_data/half.bed", c =  "output/artificial_data/other_half.bed", d =  "output/artificial_data/neg_control.bed"
 
     output:
         'output/ologram_result_artificial/00_ologram_stats.tsv'
@@ -177,17 +201,17 @@ rule run_artificial:
     gtftk ologram -z -c hg38 -p {input.query} --more-bed {params.peaks} --bed-incl {input.incl} \
         -o output/ologram_result_artificial --force-chrom-peak --force-chrom-more-bed \
         -V 3 -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} \
-        --more-bed-multiple-overlap --no-date -K output/ologram_temp
+        --more-bed-multiple-overlap --no-date -K output/ologram_result_artificial_TEMP
     """
 
 # ---------------------------------------------------------------------------- #
 #                                 Visual                                       #
 # ---------------------------------------------------------------------------- #
 
-# TODO Hardcoded for now. Of course, this is no longer germane when using different queries and cell lines.
+# TODO Hardcoded for now. Of course, this is no longer apropos when using different queries and cell lines.
 def get_queryname(wildcards):
     run = wildcards.cell_line
-    if run == "mcf7" or "mcf7_filtered" : return "foxa1"
+    if "mcf7" in run : return "foxa1"
     if run == "artificial": return "Query"
     return " ".join(file_list)
 
@@ -198,7 +222,7 @@ rule treeify:
     Turns an OLOGRAM-MODL result file into a graph of the found combinations.
     """
     input: "output/ologram_result_{cell_line}/00_ologram_stats.tsv"
-    output: "output/ologram_result_tree_{cell_line}.pdf"
+    output: "output/graph/ologram_result_tree_{cell_line}.pdf"
     params:
         queryname = get_queryname
     shell:"""
