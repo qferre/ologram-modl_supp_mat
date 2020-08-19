@@ -2,4 +2,5 @@ name: ologram_modl_env
 channels:
   - bioconda
 dependencies:
-- pygtftk
+  - pygtftk
+  - snakemake
