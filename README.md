@@ -2,9 +2,9 @@
 
 This is the code accompanying the paper describing OLOGRAM-MODL. This code was used to create supplementary files and the paper's figures.
 
-First create a conda env containing pygtftk with `conda env create -f ologram_modl_env.yaml`. This will download the latest pygtftk release from bioconda.
+First create a conda env containing pygtftk with `conda env create -f ologram_modl_env.yaml`. This will download the latest pygtftk release from bioconda and install snakemake.
 
-Here are the three possible run commands:
+To run the workflow, use these commands:
 
 ```{bash}
 # Full run
@@ -21,9 +21,7 @@ To clean the working directory:
 
 ```{bash}
 rm -r output
-git checkout # As some files were moved
+git checkout # Because some files were moved
 ```
 
-Data was selected from ReMap 2018.
-
-This code is available under GNU general public license v3
+Data was selected from ReMap 2018. This code is available under GNU general public license v3.
