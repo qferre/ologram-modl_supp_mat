@@ -1,15 +1,15 @@
-[Query + jun + ... ]
-[Query + ep300 + ... ]
-[Query + ep300 + jun + ... ]
-[Query + ep300 + gata3 + jun + ... ]
-[Query + gata3 + ... ]
-[Query + ep300 + gata3 + ... ]
-[Query + brd4 + esr1 + ... ]
-[Query + gata3 + jun + myc + ... ]
-[Query + ep300 + gata3 + jun + ... ]
-[Query + esr1 + ... ]
-[Query + ep300 + jun + ... ]
-[Query + ep300 + esr1 + gata3 + ... ]
-[Query + esr1 + gata3 + ... ]
-[Query + esr1 + jun + ... ]
-[Query + ep300 + esr1 + gata3 + jun + ... ]
+Query + jun + \(\.\.\.\|\u2026\)
+Query + ep300 + \(\.\.\.\|\u2026\)
+Query + ep300 + jun + \(\.\.\.\|\u2026\)
+Query + ep300 + gata3 + jun + \(\.\.\.\|\u2026\)
+Query + gata3 + \(\.\.\.\|\u2026\)
+Query + ep300 + gata3 + \u2026
+Query + brd4 + esr1 + \(\.\.\.\|\u2026\)
+Query + gata3 + jun + myc + \(\.\.\.\|\u2026\)
+Query + ep300 + gata3 + jun + \(\.\.\.\|\u2026\)
+Query + esr1 + \(\.\.\.\|\u2026\)
+Query + ep300 + jun + \(\.\.\.\|\u2026\)
+Query + ep300 + esr1 + gata3 + \(\.\.\.\|\u2026\)
+Query + esr1 + gata3 + \(\.\.\.\|\u2026\)
+Query + esr1 + jun + \(\.\.\.\|\u2026\)
+Query + ep300 + esr1 + gata3 + jun + \(\.\.\.\|\u2026\)
