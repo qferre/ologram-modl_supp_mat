@@ -44,29 +44,32 @@ rule prepare_artificial:
     Shuffling is restricted to a slop of 2x query size around the query itself.
     """
     output:
-        query = "output/artificial_data/query.bed", incl = "output/artificial_data/incl.bed",
-        a =  "output/artificial_data/same.bed", b =  "output/artificial_data/half.bed", c =  "output/artificial_data/other_half.bed", d =  "output/artificial_data/neg_control.bed",
+        query = "output/artificial_data/query.bed",
+        a =  "output/artificial_data/data/third.bed", a2 =  "output/artificial_data/data/third_bis.bed", b = "output/artificial_data/data/other_third.bed", c = "output/artificial_data/data/neg_control.bed"
 
     params:
-        size=1000, length=20000
+        size=1000, length=200000
     
     shell: """
     mkdir -p output/artificial_data
 
-    # Generate A
-    bedtools random -n $((2*{params.size})) -l $(({params.length})) -seed 123456 -g input/hg38.genome > {output.query}
-    cp {output.query} {output.a}
+    # Generate query
+    bedtools random -n $((3*{params.size})) -l $(({params.length})) -seed 123456 -g input/hg38.genome > {output.query}
 
-    # Generate B and C
-    head -n $(({params.size})) {output.a} > {output.b}
-    tail -n $(({params.size})) {output.b} > {output.c}
+    # Generate A and B
+    head -n $(({params.size})) {output.query} > {output.a}
+    bedtools shuffle -i {output.a} -incl {output.query} -excl {output.a} -g input/hg38.genome -noOverlapping -seed 654321 > {output.b}
+    # Do not put all regions of query into A and B
 
-    # Generate incl
-    # so files cover roughly 1/3 of shuffling region
-    bedtools slop -b $(({params.size})) -i {output.query} -g input/hg38.genome > {output.incl}
+    # Ensure there is at least one common line in A and B and C so they are displayed
+    echo "chr1	1	2	0	1	-" >> {output.a}
+    echo "chr1	1	2	0	1	-" >> {output.b}
+    echo "chr1	1	2	0	1	-" >> {output.query}
+
+    cp {output.a} {output.a2}
 
     # Generate D
-    bedtools shuffle -i {output.query} -g input/hg38.genome -incl {output.incl} -noOverlapping -seed 654321 > {output.d}
+    bedtools random -n $((2*{params.size})) -l $(({params.length})) -seed 654321 -g input/hg38.genome > {output.c}
     """
 
 
@@ -77,15 +80,15 @@ rule prepare_artificial:
 
 # Get the list of files in the various input directory
 def get_peaks_mcf7(wildcards):
-    file_list = glob.glob('input/mcf7/*bed')
+    file_list = sorted(glob.glob('input/mcf7/*bed'))
     return " ".join(file_list)
 
 def get_peaks_artificial(wildcards):
-    file_list = glob.glob('output/artificial_data/*bed')
+    file_list = sorted(glob.glob('output/artificial_data/data/*bed'))
     return " ".join(file_list)
 
 def how_many_peaks_mcf7(wildcards):
-    file_list = glob.glob('input/mcf7/*bed')
+    file_list = sorted(glob.glob('input/mcf7/*bed'))
     return len(file_list)
 
 rule compute_combi_enrichment_mcf7:
@@ -171,15 +174,7 @@ rule produce_modl_comparison:
 
     shell:"""
     mkdir -p output/benchmark
-
-
-
-    # python scripts/modl_comparison.py 2> {log.err} 1> {log.out}
-
-
-    touch {output.fig1}
-    touch {output.fig2}
-    touch {output.fig3}
+    python scripts/modl_comparison.py 2> {log.err} 1> {log.out}
     """
 
 rule run_artificial:
@@ -187,8 +182,7 @@ rule run_artificial:
     Run OLOGRAM-MODL on artificial data
     """
     input:
-        query = "output/artificial_data/query.bed", incl = "output/artificial_data/incl.bed",
-        a =  "output/artificial_data/same.bed", b =  "output/artificial_data/half.bed", c =  "output/artificial_data/other_half.bed", d =  "output/artificial_data/neg_control.bed"
+        query = "output/artificial_data/query.bed"
 
     output:
         'output/ologram_result_artificial/00_ologram_stats.tsv'
@@ -198,10 +192,10 @@ rule run_artificial:
         peaks = get_peaks_artificial
 
     shell:"""
-    gtftk ologram -z -c hg38 -p {input.query} --more-bed {params.peaks} --bed-incl {input.incl} \
+    gtftk ologram -z -c hg38 -p {input.query} --more-bed {params.peaks} \
         -o output/ologram_result_artificial --force-chrom-peak --force-chrom-more-bed \
         -V 3 -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} \
-        --more-bed-multiple-overlap --no-date -K output/ologram_result_artificial_TEMP
+        --more-bed-multiple-overlap --no-date -K output/ologram_result_artificial_TEMP # --bed-incl input.incl
     """
 
 # ---------------------------------------------------------------------------- #
