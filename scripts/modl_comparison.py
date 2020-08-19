@@ -1,13 +1,13 @@
 #!/usr/bin/python
 """
-Compare MODL and Apriori using artificial data
+Compare MODL and Apriori using artificial data matrices.
 """
 
 import numpy as np
 np.random.seed(42)
 
 import pandas as pd
-from plotnine import *
+from plotnine import ggplot, aes, geom_point, geom_line
 
 import time
 
@@ -42,18 +42,16 @@ print("-------------------------------")
 utils.VERBOSITY = 3 # Force debug messages to appear
 
 combi_miner = Modl(x, 
-    multiple_overlap_target_combi_size = -1,    # Limit the size of the combinations
+    multiple_overlap_target_combi_size = -1,            # Optional : Limit the size of the combinations
     multiple_overlap_max_number_of_combinations = 3,    # How many words to find ?
-    nb_threads = 8,
-    step_1_factor_allowance = 2)    # How many words to ask for in each step 1 rebuilding
+    nb_threads = 8,                                     # Full multithreading
+    step_1_factor_allowance = 2)                        # Optional : How many words to ask for in each step 1 rebuilding
 modl_interesting_combis = combi_miner.find_interesting_combinations()
 
 
 print("-- MODL INTERESTING COMBINATIONS --")
 print(modl_interesting_combis)
 print("-------------------------------")
-
-
 
 
 
@@ -101,7 +99,6 @@ for step in STEPS:
 p = (ggplot(df_bench) + aes('step', 'time', color='algo', group='algo')
  + geom_point() + geom_line())
 p.save(filename = OUTPUT_ROOT + "fig2")
-
 
 
 

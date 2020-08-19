@@ -21,7 +21,8 @@ To clean the working directory:
 
 ```{bash}
 rm -r output
-git checkout # Because some files were moved
+find . -name '*.bed' -delete
+git reset --hard
 ```
 
 Data was selected from ReMap 2018. This code is available under GNU general public license v3.
