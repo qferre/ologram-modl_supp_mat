@@ -1,13 +1,12 @@
-#!/usr/bin/python
 """
-Compare MODL and Apriori using artificial data matrices.
+Run a benchmark on MODL, dictionary learning and Apriori using artificial data matrices.
 """
 
 import numpy as np
 np.random.seed(42)
 
 import pandas as pd
-from plotnine import ggplot, aes, geom_point, geom_line
+from plotnine import ggplot, aes, geom_point, geom_line, scale_x_continuous
 
 import time
 
@@ -29,7 +28,7 @@ x = test_data_for_modl(nflags = 10000, number_of_sets = NB_SETS,
 
 # Run Apriori
 transactions = matrix_to_list_of_transactions(x, names)
-myminer = Apriori(min_support = 0.05)
+myminer = Apriori(min_support = 0)
 myminer.run_apriori(transactions)
 results = myminer.produce_results()
 apriori_results_df = apriori_results_to_matrix(results, names)
@@ -57,11 +56,9 @@ print("-------------------------------")
 
 
 ## ---------------------------- Time benchmarks ----------------------------- ##
-
-SIZES = [6,9,12,25,100]
-STEPS = [3,5,10,20]
-
 utils.VERBOSITY = 0 # We don't want to record debug messages for these tests
+
+SIZES = [6,9,12,25,50]
 
 ## Number of sets
 df_bench = pd.DataFrame(columns = ['nb_sets','time'])   # Prepare df
@@ -76,15 +73,18 @@ for size in SIZES:
 
     df_bench = df_bench.append({'nb_sets':size, 'time': stop_time-start_time}, ignore_index = True)
 
+df_bench['nb_sets'] = df_bench['nb_sets'].astype(int)
 p = (ggplot(df_bench) + aes('nb_sets', 'time', color='algo', group='algo')
- + geom_point() + geom_line())
+ + geom_point() + geom_line() + scale_x_continuous())
 p.save(filename = OUTPUT_ROOT + "fig1")
 
 
-## Number of queried words and min support
+## Number of queried words
 df_bench = pd.DataFrame(columns = ['step','algo','time'])
 
-X = test_data_for_modl(nflags = 20000, number_of_sets = 10, noise = 0.5)
+STEPS = [3,5,8,10,15,20,25]
+
+X = test_data_for_modl(nflags = 20000, number_of_sets = 8, noise = 0.5)
 
 for step in STEPS:
 
@@ -95,19 +95,22 @@ for step in STEPS:
 
     df_bench = df_bench.append({'step':step, 'algo':'modl', 'time': stop_time-start_time}, ignore_index = True)
 
-# Plot
+df_bench['step'] = df_bench['step'].astype(int)
 p = (ggplot(df_bench) + aes('step', 'time', color='algo', group='algo')
- + geom_point() + geom_line())
+ + geom_point() + geom_line() + scale_x_continuous())
 p.save(filename = OUTPUT_ROOT + "fig2")
 
 
 
+## -------------- Elementary operation benchmark : apriori vs dict learning
 
-## Elementary operation benchmark : apriori vs dict learning
-
-SCALING_FACTORS = [5,10,20,50,100,200]
+# Support and number of queried words
+SCALING_FACTORS = [2,5,10,25,40,75,100,150,200]
 
 df_bench = pd.DataFrame(columns = ['scaling_factor','algo','time'])   # Prepare df
+
+NOISE = 0.5
+ALPHA = 0.5
 
 for k in SCALING_FACTORS:
 
@@ -115,11 +118,9 @@ for k in SCALING_FACTORS:
     # - apriori will have min support of 1/k
     # - DL will learn 2*k words
 
-    # Generate data
-    X = test_data_for_modl(nflags = 50000, number_of_sets = 13, noise = 0.5)
+    X = test_data_for_modl(nflags = 25000, number_of_sets = 13, noise = NOISE)
     names = [str(i) for i in range(X.shape[1])]
     transactions = matrix_to_list_of_transactions(X, names)
-
 
     # Apriori
     start_time = time.time()
@@ -130,15 +131,53 @@ for k in SCALING_FACTORS:
 
     df_bench = df_bench.append({'scaling_factor':k, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)   
 
+    # Dict learning
+    start_time = time.time()
+    U_df, V_df, error = learn_dictionary_and_encode(X, n_atoms = 2*k, alpha = ALPHA, n_jobs = 1)
+    stop_time = time.time()
+
+    df_bench = df_bench.append({'scaling_factor':k, 'algo':'DL', 'time': stop_time - start_time}, ignore_index = True)   
+
+
+df_bench['scaling_factor'] = df_bench['scaling_factor'].astype(int)
+p = (ggplot(df_bench) + aes('scaling_factor', 'time', color='algo', group='algo')
+ + geom_point() + geom_line() + scale_x_continuous())
+p.save(filename = OUTPUT_ROOT + "fig3")
+
+
+
+
+
+# Number of sets
+
+SETS_NB = [6,8,10,12,14]
+
+df_bench = pd.DataFrame(columns = ['set_nb','algo','time'])   # Prepare df
+
+for size in SETS_NB:
+
+    # Generate data
+    X = test_data_for_modl(nflags = 100000, number_of_sets = size, noise = NOISE)
+    names = [str(i) for i in range(X.shape[1])]
+    transactions = matrix_to_list_of_transactions(X, names)
+
+    # Apriori
+    start_time = time.time()
+    myminer = Apriori(min_support = 1/100)
+    myminer.run_apriori(transactions)
+    results = myminer.produce_results()
+    stop_time = time.time()
+
+    df_bench = df_bench.append({'set_nb':size, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)   
 
     # Dict learning
     start_time = time.time()
-    U_df, V_df, error = learn_dictionary_and_encode(X, n_atoms = k, alpha = 0.1, n_jobs = 1)
+    U_df, V_df, error = learn_dictionary_and_encode(X, n_atoms = 60, alpha = ALPHA, n_jobs = 1)
     stop_time = time.time()
 
-    df_bench = df_bench.append({'scaling_factor':2*k, 'algo':'DL', 'time': stop_time - start_time}, ignore_index = True)   
+    df_bench = df_bench.append({'set_nb':size, 'algo':'DL', 'time': stop_time - start_time}, ignore_index = True)   
 
-
-p = (ggplot(df_bench) + aes('scaling_factor', 'time', color='algo', group='algo')
- + geom_point() + geom_line())
-p.save(filename = OUTPUT_ROOT + "fig3")
+df_bench['set_nb'] = df_bench['set_nb'].astype(int)
+p = (ggplot(df_bench) + aes('set_nb', 'time', color='algo', group='algo')
+ + geom_point() + geom_line() + scale_x_continuous())
+p.save(filename = OUTPUT_ROOT + "fig4")
