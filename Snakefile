@@ -5,7 +5,7 @@ import re
 workdir: os.getcwd()
 
 
-# Query the final the trees and the benchmark
+# Query the final trees and the benchmark
 rule final:
     input: 
         "output/benchmark/fig1.png",
@@ -40,8 +40,8 @@ rule prepare_incl:
 rule prepare_artificial:
     """
     Prepare artificial demonstration data.
-    It consits of random regions for the query, compared against (a) the same regions as the query, (b) half of the query, (c) the other half of the query and (d) random regions.
-    Shuffling is restricted to a slop of 2x query size around the query itself.
+    It consits of random regions for the query, compared against (a) a third of 
+    the query, (b) another third, and (c) a negative control.
     """
     output:
         query = "output/artificial_data/query.bed",
@@ -93,8 +93,8 @@ def how_many_peaks_mcf7(wildcards):
 
 rule compute_combi_enrichment_mcf7:
     """
-    For a the MCF7 cell line, compute the enrichment in n-wise TF combinations using OLOGRAM-MODL.
-    The query is FOXA1.
+    For a the MCF7 cell line, compute the enrichment in n-wise TF combinations 
+    using OLOGRAM-MODL. The query is FOXA1.
     """
     input: 
         query = 'input/foxa1_mcf7.bed',
@@ -116,8 +116,9 @@ rule compute_combi_enrichment_mcf7:
 rule compute_mcf7_modl_selection:
     """
     Run MCF7 on a single shuffle.
-    This is NOT designed to get results, only to show which combinations will be selected by MODL.
-    Indeed, MODL works only on the matrix of true overlaps and does not care for the shuffles.
+    This is NOT designed to get results, only to show which combinations will be
+    selected by MODL. Indeed, MODL works only on the matrix of true overlaps and
+    does not care for the shuffles.
     """
     input: 
         query = 'input/foxa1_mcf7.bed',
@@ -166,7 +167,8 @@ rule produce_modl_comparison:
     output: 
         fig1 = "output/benchmark/fig1.png",
         fig2 = "output/benchmark/fig2.png",
-        fig3 = "output/benchmark/fig3.png"
+        fig3 = "output/benchmark/fig3.png",
+        fig4 = "output/benchmark/fig4.png"
 
     log:
         err= "output/benchmark/comparison_benchmark_ERROR_LOG.txt",
@@ -176,6 +178,7 @@ rule produce_modl_comparison:
     mkdir -p output/benchmark
     python scripts/modl_comparison.py 2> {log.err} 1> {log.out}
     """
+
 
 rule run_artificial:
     """
@@ -202,7 +205,8 @@ rule run_artificial:
 #                                 Visual                                       #
 # ---------------------------------------------------------------------------- #
 
-# TODO Hardcoded for now. Of course, this is no longer apropos when using different queries and cell lines.
+# TODO Hardcoded for now. Of course, this is no longer apropos when using 
+# different queries and cell lines.
 def get_queryname(wildcards):
     run = wildcards.cell_line
     if "mcf7" in run : return "foxa1"
