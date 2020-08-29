@@ -85,7 +85,7 @@ p.save(filename = OUTPUT_ROOT + "fig1")
 
 
 ## Number of queried words
-df_bench = pd.DataFrame(columns = ['step','algo','time'])
+df_bench = pd.DataFrame(columns = ['step','time'])
 
 STEPS = [3,5,8,10,15,20,25]
 
@@ -98,10 +98,10 @@ for step in STEPS:
     modl_interesting_combis = combi_miner.find_interesting_combinations()
     stop_time = time.time()
 
-    df_bench = df_bench.append({'step':step, 'algo':'modl', 'time': stop_time-start_time}, ignore_index = True)
+    df_bench = df_bench.append({'step':step, 'time': stop_time-start_time}, ignore_index = True)
 
 df_bench['step'] = df_bench['step'].astype(int)
-p = (ggplot(df_bench) + aes('step', 'time', color='algo', group='algo')
+p = (ggplot(df_bench) + aes('step', 'time')
  + geom_point() + geom_line() + scale_x_continuous())
 p.save(filename = OUTPUT_ROOT + "fig2")
 
