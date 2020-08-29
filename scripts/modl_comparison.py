@@ -17,6 +17,10 @@ from pygtftk import utils
 
 OUTPUT_ROOT = "output/benchmark/" # Hardcoded for now. It was necessary to launch this script in shell and not via snakemake.script to allow proper redirection of the log
 
+# Debug : plots are not shown, only printed, so use Agg backend for matplotlib
+import matplotlib
+matplotlib.use("Agg")
+
 
 ## --------------------------- Found combinations --------------------------- ##
 
@@ -34,7 +38,8 @@ results = myminer.produce_results()
 apriori_results_df = apriori_results_to_matrix(results, names)
 
 print("-- APRIORI ASSOCIATION RULES --")
-print(apriori_results_df)
+with pd.option_context('display.max_rows', None, 'display.max_columns', None):
+    print(apriori_results_df)
 print("-------------------------------")
 
 # Run MODL
@@ -58,7 +63,7 @@ print("-------------------------------")
 ## ---------------------------- Time benchmarks ----------------------------- ##
 utils.VERBOSITY = 0 # We don't want to record debug messages for these tests
 
-SIZES = [6,9,12,25,50]
+SIZES = [6,9,12,24,30]
 
 ## Number of sets
 df_bench = pd.DataFrame(columns = ['nb_sets','time'])   # Prepare df
@@ -74,7 +79,7 @@ for size in SIZES:
     df_bench = df_bench.append({'nb_sets':size, 'time': stop_time-start_time}, ignore_index = True)
 
 df_bench['nb_sets'] = df_bench['nb_sets'].astype(int)
-p = (ggplot(df_bench) + aes('nb_sets', 'time', color='algo', group='algo')
+p = (ggplot(df_bench) + aes('nb_sets', 'time')
  + geom_point() + geom_line() + scale_x_continuous())
 p.save(filename = OUTPUT_ROOT + "fig1")
 
@@ -154,6 +159,8 @@ SETS_NB = [6,8,10,12,14]
 
 df_bench = pd.DataFrame(columns = ['set_nb','algo','time'])   # Prepare df
 
+ALPHA = 0
+
 for size in SETS_NB:
 
     # Generate data
@@ -172,7 +179,7 @@ for size in SETS_NB:
 
     # Dict learning
     start_time = time.time()
-    U_df, V_df, error = learn_dictionary_and_encode(X, n_atoms = 60, alpha = ALPHA, n_jobs = 1)
+    U_df, V_df, error = learn_dictionary_and_encode(X, n_atoms = 120, alpha = ALPHA, n_jobs = 1)
     stop_time = time.time()
 
     df_bench = df_bench.append({'set_nb':size, 'algo':'DL', 'time': stop_time - start_time}, ignore_index = True)   
