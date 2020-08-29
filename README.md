@@ -1,10 +1,10 @@
 # OLOGRAM-MODL Supplementary material
 
-This is the code accompanying the paper describing OLOGRAM-MODL. This code was used to create supplementary files and the paper's figures.
+This is the code accompanying the paper describing OLOGRAM-MODL. It was used to create supplementary files and the paper's figures.
 
-First create a conda env containing pygtftk with `conda env create -f ologram_modl_env.yaml`. This will download the latest pygtftk release from bioconda and install snakemake.
+To run it, create first a conda environment containing pygtftk with `conda env create -f ologram_modl_env.yaml`. This will download the latest pygtftk release from bioconda and install snakemake.
 
-To run the workflow, use these commands:
+To run the workflow itself, use these commands:
 
 ```{bash}
 # Full run
