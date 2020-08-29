@@ -45,7 +45,7 @@ rule prepare_artificial:
     """
     output:
         query = "output/artificial_data/query.bed",
-        a =  "output/artificial_data/data/third.bed", a2 =  "output/artificial_data/data/third_bis.bed", b = "output/artificial_data/data/other_third.bed", c = "output/artificial_data/data/neg_control.bed"
+        a = "output/artificial_data/data/third.bed", a2 = "output/artificial_data/data/third_bis.bed", b = "output/artificial_data/data/other_third.bed", c = "output/artificial_data/data/neg_control.bed"
 
     params:
         size=1000, length=200000
@@ -136,14 +136,14 @@ rule compute_mcf7_modl_selection:
         -o output/ologram_result_mcf7_filtered --force-chrom-peak --force-chrom-more-bed --no-date \
         -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} -V 3 \
         --more-bed-multiple-overlap --bed-incl {input.incl} \
-        --multiple-overlap-max-number-of-combinations {params.max_combis} \
-        #--multiple-overlap-target-combi-size XX                 
+        --multiple-overlap-max-number-of-combinations {params.max_combis}               
     """
 
 
 rule mcf7_manual_filtering:
     """
-    Manual filtering of the displayed combinations for MCF7
+    Manual filtering of the displayed combinations for MCF7.
+    Remember to keep the header.
     """
     input:
         res = 'output/ologram_result_mcf7/00_ologram_stats.tsv',
@@ -151,8 +151,8 @@ rule mcf7_manual_filtering:
     output:
         'output/ologram_result_mcf7_manual/00_ologram_stats.tsv'
     shell: """
-    head -n 1 {input.res} > {output}                    # Keep the header
-    grep -w -F -f {input.filtered} {input.res} >> {output}
+    head -n 1 {input.res} > {output}
+    grep -w -f {input.filtered} {input.res} >> {output}
     """
 
 # ---------------------------------------------------------------------------- #
@@ -198,7 +198,7 @@ rule run_artificial:
     gtftk ologram -z -c hg38 -p {input.query} --more-bed {params.peaks} \
         -o output/ologram_result_artificial --force-chrom-peak --force-chrom-more-bed \
         -V 3 -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} \
-        --more-bed-multiple-overlap --no-date -K output/ologram_result_artificial_TEMP # --bed-incl input.incl
+        --more-bed-multiple-overlap --no-date -K output/ologram_result_artificial_TEMP
     """
 
 # ---------------------------------------------------------------------------- #
