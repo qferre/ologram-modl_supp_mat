@@ -101,14 +101,15 @@ rule compute_combi_enrichment_mcf7:
         incl = "input/crm_mcf7.bed"
     params:
         trs = get_peaks_mcf7,
-        minibatch_number = 10, minibatch_size = 5, threads = 8,
+        minibatch_number = 10, minibatch_size = 5#, threads = 8,
+    threads: 8
 
     output: 'output/ologram_result_mcf7/00_ologram_stats.tsv', 
 
     shell: """
     gtftk ologram -z -c hg38 -p {input.query} --more-bed {params.trs} \
         -o output/ologram_result_mcf7 --force-chrom-peak --force-chrom-more-bed  \
-        -V 3 -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} \
+        -V 3 -k {threads} -mn {params.minibatch_number} -ms {params.minibatch_size} \
         --more-bed-multiple-overlap --bed-incl {input.incl} --no-date
     """
 
@@ -126,15 +127,16 @@ rule compute_mcf7_modl_selection:
 
     params:
         trs = get_peaks_mcf7,
-        minibatch_number = 1, minibatch_size = 1, threads = 4,
+        minibatch_number = 1, minibatch_size = 1#, threads = 4,
         max_combis = 20
-    
+    threads: 4
+
     output:'output/ologram_result_mcf7_filtered/00_ologram_stats.tsv'
 
     shell: """
     gtftk ologram -z -c hg38 -p {input.query} --more-bed {params.trs}\
         -o output/ologram_result_mcf7_filtered --force-chrom-peak --force-chrom-more-bed --no-date \
-        -k {params.threads} -mn {params.minibatch_number} -ms {params.minibatch_size} -V 3 \
+        -k {threads} -mn {params.minibatch_number} -ms {params.minibatch_size} -V 3 \
         --more-bed-multiple-overlap --bed-incl {input.incl} \
         --multiple-overlap-max-number-of-combinations {params.max_combis}               
     """
@@ -211,7 +213,6 @@ def get_queryname(wildcards):
     run = wildcards.cell_line
     if "mcf7" in run : return "foxa1"
     if run == "artificial": return "Query"
-    return " ".join(file_list)
 
 
 rule treeify:

@@ -28,7 +28,40 @@ matplotlib.use("Agg")
 NB_SETS = 6
 names = [str(i) for i in range(NB_SETS)]
 x = test_data_for_modl(nflags = 10000, number_of_sets = NB_SETS,
-    noise = 0.1, cor_groups = [(0,1),(0,1,2,3),(4,5)])
+    noise = 0.05, cor_groups = [(0,1),(0,1,2,3),(4,5)])
+
+
+# Run MODL
+utils.VERBOSITY = 3 # Force debug messages to appear
+
+combi_miner = Modl(x, 
+    multiple_overlap_target_combi_size = -1,            # Optional : Limit the size of the combinations
+    multiple_overlap_max_number_of_combinations = 3,    # How many words to find ?
+    nb_threads = 8,                                     # Full multithreading
+    smother = True,                                     # Reduce each row's abundance to its square root. Helps find rarer combinations but magnifies the noise.
+    step_1_factor_allowance = 2,                        # Optional : How many words to ask for in each step 1 rebuilding
+    normalize_words = False)                            # Normalize word sum of square in step 2
+modl_interesting_combis = combi_miner.find_interesting_combinations()
+
+
+# Run MODL without smothering
+x = test_data_for_modl(noise = 0.2)
+combi_miner = Modl(x, multiple_overlap_max_number_of_combinations=3, smother = False)
+modl_interesting_combis_no_smother = combi_miner.find_interesting_combinations()
+
+
+# Run MODL with word normalization
+x = test_data_for_modl(noise = 0.15)
+combi_miner = Modl(x, multiple_overlap_max_number_of_combinations=3, normalize_words = True)
+modl_interesting_combis_normalized = combi_miner.find_interesting_combinations()
+
+
+print("-- MODL INTERESTING COMBINATIONS --")
+print(modl_interesting_combis)
+print("No smother =", modl_interesting_combis_no_smother)
+print("Normalized", modl_interesting_combis_normalized)
+print("-------------------------------")
+
 
 # Run Apriori
 transactions = matrix_to_list_of_transactions(x, names)
@@ -41,22 +74,6 @@ print("-- APRIORI ASSOCIATION RULES --")
 with pd.option_context('display.max_rows', None, 'display.max_columns', None):
     print(apriori_results_df)
 print("-------------------------------")
-
-# Run MODL
-utils.VERBOSITY = 3 # Force debug messages to appear
-
-combi_miner = Modl(x, 
-    multiple_overlap_target_combi_size = -1,            # Optional : Limit the size of the combinations
-    multiple_overlap_max_number_of_combinations = 3,    # How many words to find ?
-    nb_threads = 8,                                     # Full multithreading
-    step_1_factor_allowance = 2)                        # Optional : How many words to ask for in each step 1 rebuilding
-modl_interesting_combis = combi_miner.find_interesting_combinations()
-
-
-print("-- MODL INTERESTING COMBINATIONS --")
-print(modl_interesting_combis)
-print("-------------------------------")
-
 
 
 
