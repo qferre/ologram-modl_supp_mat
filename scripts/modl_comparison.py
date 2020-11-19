@@ -24,11 +24,11 @@ matplotlib.use("Agg")
 
 ## --------------------------- Found combinations --------------------------- ##
 
-# Generate data with the AB, ABCD, EF combinations, adding 10% uniform noise
+# Generate data with the AB, ABCD, EF combinations, adding uniform noise
 NB_SETS = 6
 names = [str(i) for i in range(NB_SETS)]
 x = test_data_for_modl(nflags = 10000, number_of_sets = NB_SETS,
-    noise = 0.05, cor_groups = [(0,1),(0,1,2,3),(4,5)])
+    noise = 0.12, cor_groups = [(0,1),(0,1,2,3),(4,5)])
 
 
 # Run MODL
@@ -40,7 +40,8 @@ combi_miner = Modl(x,
     nb_threads = 8,                                     # Full multithreading
     smother = True,                                     # Reduce each row's abundance to its square root. Helps find rarer combinations but magnifies the noise.
     step_1_factor_allowance = 2,                        # Optional : How many words to ask for in each step 1 rebuilding
-    normalize_words = False)                            # Normalize word sum of square in step 2
+    normalize_words = True,                             # Normalize word sum of square in step 2
+    step_2_alpha = None)                                # Override the sparsity control in step 2
 modl_interesting_combis = combi_miner.find_interesting_combinations()
 
 
@@ -50,10 +51,6 @@ combi_miner = Modl(x, multiple_overlap_max_number_of_combinations=3, smother = F
 modl_interesting_combis_no_smother = combi_miner.find_interesting_combinations()
 
 
-# Run MODL with word normalization
-x = test_data_for_modl(noise = 0.15)
-combi_miner = Modl(x, multiple_overlap_max_number_of_combinations=3, normalize_words = True)
-modl_interesting_combis_normalized = combi_miner.find_interesting_combinations()
 
 
 print("-- MODL INTERESTING COMBINATIONS --")

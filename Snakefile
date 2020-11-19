@@ -127,7 +127,7 @@ rule compute_mcf7_modl_selection:
 
     params:
         trs = get_peaks_mcf7,
-        minibatch_number = 1, minibatch_size = 1#, threads = 4,
+        minibatch_number = 1, minibatch_size = 1,#, threads = 4,
         max_combis = 20
     threads: 4
 

@@ -10,10 +10,10 @@ To run the workflow itself, use these commands:
 # Full run
 snakemake
 
-# Dry run
-snakemake -n
+# Dry run with commands printed. Useful to run individual steps.
+snakemake -n -p
 
-# Don't run, produce a graph
+# Don't run, produce a graph of the steps
 snakemake --dag | dot -Tsvg > dag.svg
 ```
 
