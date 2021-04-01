@@ -142,4 +142,3 @@ command_line = ["java -jar","./ext/spmf.jar", # Java SPMF toolset
 
 # NOTE Remember that in subprocess.run, the command line must be a list of arguments and not a string of the command
 stdout_captured = subprocess.run(command_line, stdout=subprocess.PIPE, universal_newlines=True).stdout
-
