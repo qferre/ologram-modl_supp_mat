@@ -4,4 +4,8 @@
 # Ignore data that will be produced by the Snakemake
 output/
 
+# Development internals and temporary files
 .vscode/
+.ipynb_checkpoints
+*/.ipynb_checkpoints
+*/__pycache__
