@@ -697,7 +697,7 @@ rule ologram_sc_atac_seq_analysis:
     gtftk ologram_merge_runs --inputfiles `ls output/ologram_result_scatacseq_pbmc/*/*.tsv` -o output/ologram_result_scatacseq_pbmc/merged_batches_result.tsv -V 3
 
     # Run the Python script to produce the figures
-    python scripts/combi_true_analysis.py
+    python scripts/combi_entropy_analysis.py
 
     # Signal we are done
     touch {output}
