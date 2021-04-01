@@ -1,5 +1,7 @@
 # Snakemake internals
 .snakemake/
+# Snakemake queued job logs
+snakejob.*
 
 # Ignore data that will be produced by the Snakemake
 output/

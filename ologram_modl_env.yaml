@@ -1,6 +1,14 @@
 name: ologram_modl_env
 channels:
   - bioconda
+  - conda-forge
+  - anaconda
 dependencies:
-  - pygtftk
-  - snakemake
+  - python>=3.8
+  - pygtftk     # Contains OLOGRAM-MODL and all its dependencies
+  - snakemake   # For the workflow
+  - mlxtend     # For FP-growth
+  - openjdk     # To run certain /ext for tests
+  - r-base>=4.0 # R
+  - r-curl      # R package
+  - r-hdf5r     # R package

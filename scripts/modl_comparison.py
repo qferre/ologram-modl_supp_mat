@@ -1,5 +1,5 @@
 """
-Run a benchmark on MODL, dictionary learning and Apriori using artificial data matrices.
+Compare MODL to other algorithms using artificial data matrices.
 """
 
 import numpy as np
@@ -9,13 +9,14 @@ import pandas as pd
 from plotnine import ggplot, aes, geom_point, geom_line, scale_x_continuous
 
 import time
+import subprocess
 
 from pygtftk.stats.intersect.modl.dict_learning import Modl, test_data_for_modl
 from pygtftk.stats.intersect.modl.apriori import Apriori, matrix_to_list_of_transactions, apriori_results_to_matrix
 from pygtftk.stats.intersect.modl.subroutines import learn_dictionary_and_encode
 from pygtftk import utils
 
-OUTPUT_ROOT = "output/benchmark/" # Hardcoded for now. It was necessary to launch this script in shell and not via snakemake.script to allow proper redirection of the log
+OUTPUT_ROOT = "output/benchmark/comparison" # Hardcoded for now. It was necessary to launch this script in shell and not via snakemake.script to allow proper redirection of the log
 
 # Debug : plots are not shown, only printed, so use Agg backend for matplotlib
 import matplotlib
@@ -29,6 +30,15 @@ NB_SETS = 6
 names = [str(i) for i in range(NB_SETS)]
 x = test_data_for_modl(nflags = 10000, number_of_sets = NB_SETS,
     noise = 0.05, cor_groups = [(0,1),(0,1,2,3),(4,5)])
+
+transactions = matrix_to_list_of_transactions(x, names) # Convert to list of transactions
+
+
+
+
+
+
+
 
 
 # Run MODL
@@ -63,9 +73,11 @@ print("Normalized", modl_interesting_combis_normalized)
 print("-------------------------------")
 
 
-# Run Apriori
-transactions = matrix_to_list_of_transactions(x, names)
-myminer = Apriori(min_support = 0)
+## Run Apriori and FP-growth
+MIN_SUPPORT = 1E-10 # Epsilon for 0. Return all itemsets, ordered by support
+
+# Apriori
+myminer = Apriori(min_support = MIN_SUPPORT)
 myminer.run_apriori(transactions)
 results = myminer.produce_results()
 apriori_results_df = apriori_results_to_matrix(results, names)
@@ -77,131 +89,57 @@ print("-------------------------------")
 
 
 
-## ---------------------------- Time benchmarks ----------------------------- ##
-utils.VERBOSITY = 0 # We don't want to record debug messages for these tests
-
-SIZES = [6,9,12,24,30]
-
-## Number of sets
-df_bench = pd.DataFrame(columns = ['nb_sets','time'])   # Prepare df
-
-for size in SIZES:
-    X = test_data_for_modl(nflags = 20000, number_of_sets = size, noise = 0.5)
-
-    start_time = time.time()
-    combi_miner = Modl(X, multiple_overlap_max_number_of_combinations = 8, nb_threads = 8)
-    modl_interesting_combis = combi_miner.find_interesting_combinations()
-    stop_time = time.time()
-
-    df_bench = df_bench.append({'nb_sets':size, 'time': stop_time-start_time}, ignore_index = True)
-
-df_bench['nb_sets'] = df_bench['nb_sets'].astype(int)
-p = (ggplot(df_bench) + aes('nb_sets', 'time')
- + geom_point() + geom_line() + scale_x_continuous())
-p.save(filename = OUTPUT_ROOT + "fig1")
 
 
-## Number of queried words
-df_bench = pd.DataFrame(columns = ['step','time'])
-
-STEPS = [3,5,8,10,15,20,25]
-
-X = test_data_for_modl(nflags = 20000, number_of_sets = 8, noise = 0.5)
-
-for step in STEPS:
-
-    start_time = time.time()
-    combi_miner = Modl(x, multiple_overlap_max_number_of_combinations = step, nb_threads = 8)
-    modl_interesting_combis = combi_miner.find_interesting_combinations()
-    stop_time = time.time()
-
-    df_bench = df_bench.append({'step':step, 'time': stop_time-start_time}, ignore_index = True)
-
-df_bench['step'] = df_bench['step'].astype(int)
-p = (ggplot(df_bench) + aes('step', 'time')
- + geom_point() + geom_line() + scale_x_continuous())
-p.save(filename = OUTPUT_ROOT + "fig2")
+# FP-Growth
+from mlxtend.frequent_patterns import fpgrowth
+x_as_dataframe = pd.DataFrame(x)
+fpgrowth(x_as_dataframe, min_support=MIN_SUPPORT)
 
 
 
-## -------------- Elementary operation benchmark : apriori vs dict learning
+# Here, output the matrices to BED files
+# from matrix_to_bed import intersection_matrix_to_bedfiles
+# bedpaths = intersection_matrix_to_bedfiles(x, output_root)
 
-# Support and number of queried words
-SCALING_FACTORS = [2,5,10,25,40,75,100,150,200]
+# # Also print it to a tsv, and to a list of transactions
+# np.savetxt(OUTPUT_ROOT+'/artifmat.tsv', delimiter='\t')
 
-df_bench = pd.DataFrame(columns = ['scaling_factor','algo','time'])   # Prepare df
-
-NOISE = 0.5
-ALPHA = 0.5
-
-for k in SCALING_FACTORS:
-
-    # NOTE Scaling factor of k means :
-    # - apriori will have min support of 1/k
-    # - DL will learn 2*k words
-
-    X = test_data_for_modl(nflags = 25000, number_of_sets = 13, noise = NOISE)
-    names = [str(i) for i in range(X.shape[1])]
-    transactions = matrix_to_list_of_transactions(X, names)
-
-    # Apriori
-    start_time = time.time()
-    myminer = Apriori(min_support = 1/k)
-    myminer.run_apriori(transactions)
-    results = myminer.produce_results()
-    stop_time = time.time()
-
-    df_bench = df_bench.append({'scaling_factor':k, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)   
-
-    # Dict learning
-    start_time = time.time()
-    U_df, V_df, error = learn_dictionary_and_encode(X, n_atoms = 2*k, alpha = ALPHA, n_jobs = 1)
-    stop_time = time.time()
-
-    df_bench = df_bench.append({'scaling_factor':k, 'algo':'DL', 'time': stop_time - start_time}, ignore_index = True)   
-
-
-df_bench['scaling_factor'] = df_bench['scaling_factor'].astype(int)
-p = (ggplot(df_bench) + aes('scaling_factor', 'time', color='algo', group='algo')
- + geom_point() + geom_line() + scale_x_continuous())
-p.save(filename = OUTPUT_ROOT + "fig3")
+# def format_list_brackets(alist): return '{'+','.join(alist)+'}'
+# with open(OUTPUT_ROOT+'/artiftransact_brackets.tsv', 'w+') as f:
+#     for item in transactions:
+#         f.write(format_list_brackets(item)+'\n')
 
 
 
 
+# And in the specific SPMF format
+# TODO UNHARDCODE THIS
+OUTPUT_ROOT = "../output/benchmark/comparison"
 
-# Number of sets
+with open(OUTPUT_ROOT+'/artiftransact.txt', 'w+') as f:
+    for item in transactions: f.write(' '.join(item)+'\n')
 
-SETS_NB = [6,8,10,12,14]
 
-df_bench = pd.DataFrame(columns = ['set_nb','algo','time'])   # Prepare df
 
-ALPHA = 0
+## --- Manual itemsets miners
 
-for size in SETS_NB:
+"""
+The miners will be in the /ext directory
+"""
 
-    # Generate data
-    X = test_data_for_modl(nflags = 100000, number_of_sets = size, noise = NOISE)
-    names = [str(i) for i in range(X.shape[1])]
-    transactions = matrix_to_list_of_transactions(X, names)
+# TODO add SPMF source as citation in paper for those implementations
 
-    # Apriori
-    start_time = time.time()
-    myminer = Apriori(min_support = 1/100)
-    myminer.run_apriori(transactions)
-    results = myminer.produce_results()
-    stop_time = time.time()
+# TODO Run LCM
+command_line = ["java -jar","./ext/spmf.jar", # Java SPMF toolset
+    "run",
+    "LCM", # Algorithm
+    OUTPUT_ROOT+"/artiftransact.txt", # Query file
+    OUTPUT_ROOT+"/output_lcm.txt",
+    str(round(MIN_SUPPORT*100))+"%" # Min support
+    ] 
 
-    df_bench = df_bench.append({'set_nb':size, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)   
 
-    # Dict learning
-    start_time = time.time()
-    U_df, V_df, error = learn_dictionary_and_encode(X, n_atoms = 120, alpha = ALPHA, n_jobs = 1)
-    stop_time = time.time()
+# NOTE Remember that in subprocess.run, the command line must be a list of arguments and not a string of the command
+stdout_captured = subprocess.run(command_line, stdout=subprocess.PIPE, universal_newlines=True).stdout
 
-    df_bench = df_bench.append({'set_nb':size, 'algo':'DL', 'time': stop_time - start_time}, ignore_index = True)   
-
-df_bench['set_nb'] = df_bench['set_nb'].astype(int)
-p = (ggplot(df_bench) + aes('set_nb', 'time', color='algo', group='algo')
- + geom_point() + geom_line() + scale_x_continuous())
-p.save(filename = OUTPUT_ROOT + "fig4")
