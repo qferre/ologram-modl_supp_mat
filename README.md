@@ -9,16 +9,11 @@ To run the workflow itself, use these commands:
 ```{bash}
 # Full run, where -j is the number of jobs
 snakemake -j4
-```
 
-Here are some auxiliary commands:
-
-```{bash}
-# Dry run: nothing will be done, but instead print the shell commands and their reasons.
+# Dry run (nothing is done)
 snakemake -n -p --reason
 
-
-# Example: running it on a cluster with qsub, with resources per node
+# Example: cluster run with qsub
 snakemake -c 'qsub -q tagc -V -l nodes=1:ppn={threads}' -j25
 
 ```

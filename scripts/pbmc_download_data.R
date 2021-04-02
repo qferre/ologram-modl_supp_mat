@@ -19,7 +19,7 @@ print(getwd())
 
 ## Library
 if (!requireNamespace("BiocManager", quietly = TRUE)){
-  install.packages("BiocManager")
+  install.packages("BiocManager", repos="http://cran.us.r-project.org")
 }
 BiocManager::install()
 setRepositories(ind=1:2) # To automatically install Bioconductor dependencies
@@ -27,7 +27,7 @@ setRepositories(ind=1:2) # To automatically install Bioconductor dependencies
 # Install Signac
 if (!requireNamespace("Signac")){
   BiocManager::install("GenomeInfoDbData", "EnsDb.Hsapiens.v75")
-  install.packages(c("Signac"))
+  install.packages(c("Signac"), repos="http://cran.us.r-project.org")
 }
 
 

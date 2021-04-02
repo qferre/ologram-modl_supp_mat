@@ -59,7 +59,7 @@ for _ in REPEATS:
 
 df_bench['nb_sets'] = df_bench['nb_sets'].astype(int)
 p = (ggplot(df_bench) + aes('nb_sets', 'time')
- + geom_point() + geom_line() + scale_x_continuous())
+ + geom_point() + geom_smooth() + scale_x_continuous())
 p.save(filename = OUTPUT_ROOT + "fig1")
 
 
@@ -81,7 +81,7 @@ for _ in REPEATS:
 
 df_bench['step'] = df_bench['step'].astype(int)
 p = (ggplot(df_bench) + aes('step', 'time')
- + geom_point() + geom_line() + scale_x_continuous())
+ + geom_point() + geom_smooth() + scale_x_continuous())
 p.save(filename = OUTPUT_ROOT + "fig2")
 
 

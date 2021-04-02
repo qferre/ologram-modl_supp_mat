@@ -33,7 +33,7 @@ rule final:
         # MCF7 - full DHS as query
         "output/tree_results/ologram_result_tree_mcf7_full_dhs.pdf",
         # sc-ATAC-Seq and combination entropy
-        "output/ologram_result_scatacseq_pbmc/done",   #TODO: IN PROGRESS IN SACAPUS
+        "output/ologram_result_scatacseq_pbmc/done", 
         # Murine promoters
         "output/murine_result/murine_fig.png",
         # Comparison with GINOM
@@ -41,7 +41,11 @@ rule final:
         ## MODL benchmarks
         "output/benchmark/comparison/done",
         expand("output/benchmark/scaling/fig{n}.png", n = [1,2,3,4,5])
-
+    shell:"""
+    # Produce a graph, for giggles
+    snakemake --forceall --dag | dot -Tsvg > output/dag.svg
+    snakemake --forceall --rulegraph | dot -Tsvg > output/rulegraph.svg
+    """
 
 # ---------------------------------------------------------------------------- #
 #                        Data retrieval and preparation                        #
@@ -54,16 +58,14 @@ rule prepare_incl:
 
     Also do that for the additional MCF7 TFs
     """
+    input:
+        "input/mcf7/foxa1.bed" # Ensure files have been uncompressed
     output:
         query = "input/foxa1_mcf7.bed",
         incl = "input/crm_mcf7.bed",
         incl_extended = "input/crm_mcf7_extended.bed"
 
     shell: """
-        # Unzip all
-        gunzip input/mcf7/*.gz
-        gunzip input/mcf7_additional/*.gz
-
         # Create incl file by merging all BEDs
         cat input/mcf7/*.bed | bedtools sort | bedtools merge > {output.incl}
 
@@ -86,11 +88,14 @@ rule uncompress:
         "input/DNAse-seq_MCF7_ENCSR000EPH_rep1_1_se_bwa_biorep_filtered_peaks_aka_ENCFF961ZCT.bed",
         "input/murine_chipatlas.txt",
         "input/as_ginom/mappability_human.bed",
-        "input/as_ginom/query_som_trans_lung.bed"
+        "input/as_ginom/query_som_trans_lung.bed",
+        "input/mcf7/foxa1.bed",
+        "input/hg38.genome",
+        "input/artificial_simple.genome",
 
     shell:"""
-        gunzip input/*/*.gz
         gunzip input/*.gz
+        gunzip input/*/*.gz    
     """
 
 
@@ -100,6 +105,8 @@ rule prepare_artificial:
     It consits of random regions for the query, compared against (a) a third of 
     the query, (b) another third, and (c) a negative control.
     """
+    input:
+        "input/hg38.genome"
     output:
         query = "output/artificial_data/query.bed",
         a = "output/artificial_data/data/third.bed", 
@@ -142,6 +149,8 @@ rule prepare_artificial_calibrate:
     These are an "easy" case where the true p-vals may be computed by MULTOVL so we can compare. 
     Also run MULTOVL on original artifical data, the neg control will serve as further confirmation.
     """
+    input:
+        "input/artificial_simple.genome",
     output:
         query = "output/artificial_data_calibrate/query.bed",
         filler1 = "output/artificial_data_calibrate/filler1.bed",

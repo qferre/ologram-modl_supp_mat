@@ -35,7 +35,7 @@ REPEATS = range(5) # Repeat all operations N times to get the average
 
 
 # Elementary operation (DL)
-LINES_NB = [5,10,15,25,50]  # Numbers of lines (in thousands)
+LINES_NB = [1,2,5,8,10,15,20,25,40,50]  # Numbers of lines (in thousands)
 
 
 
@@ -102,7 +102,7 @@ for _ in REPEATS:
 
         df_bench = df_bench.append({'lines':lines, 'algo':'DL', 'time': stop_time - start_time}, ignore_index = True)   
 
-df_bench['lines'] = df_bench['setlines_nb'].astype(int)
+df_bench['lines'] = df_bench['lines'].astype(int)
 p = (ggplot(df_bench) + aes('lines', 'time', color='algo', group='algo')
  + geom_point() + geom_smooth() + scale_x_continuous())
 p.save(filename = OUTPUT_ROOT + "fig5")
@@ -113,13 +113,18 @@ p.save(filename = OUTPUT_ROOT + "fig5_log10")
 
 
 
+
+
+
+
+
 # Normalized time to minimum line number
 min_nb_lines = min(LINES_NB)
 minimum_time = df_bench[df_bench['lines'] == min_nb_lines][['algo','time']]
 df_bench['time_relative'] = df_bench['time'] # Placeholder
 for index, row in df_bench.iterrows():
     my_algo = row['algo']
-    my_minimum_time = minimum_time.loc[minimum_time['algo'] == my_algo]['time']
+    my_minimum_time = pd.to_numeric(minimum_time.loc[minimum_time['algo'] == my_algo]['time']).min()
     df_bench.at[index,'time_relative'] = row['time']/my_minimum_time
 
 p = (ggplot(df_bench) + aes('lines', 'time_relative', color='algo', group='algo')

@@ -35,7 +35,7 @@ REPEATS = range(5) # Repeat all operations N times to get the average
 
 
 # Elementary operation (DL)
-SCALING_FACTORS =  [1,2,5,10,25,30,40,50,75,100,150,200,300]    # Number of words, and 1/min_support for the comparisons
+SCALING_FACTORS =  [1,2,5,10,25,30,40,50,75,100,150,200,300,500]    # Number of words, and 1/min_support for the comparisons
 
 
 
@@ -109,12 +109,23 @@ p = (ggplot(df_bench) + aes('scaling_factor', 'time', color='algo', group='algo'
 p.save(filename = OUTPUT_ROOT + "fig3_log10")
 
 
+
+
+
+
+
+
+
+
+
+
+
 # Normalized time to scaling factor of 1
 minimum_time = df_bench[df_bench['scaling_factor']==1][['algo','time']]
 df_bench['time_relative'] = df_bench['time'] # Placeholder
 for index, row in df_bench.iterrows():
     my_algo = row['algo']
-    my_minimum_time = minimum_time.loc[minimum_time['algo'] == my_algo]['time']
+    my_minimum_time = pd.to_numeric(minimum_time.loc[minimum_time['algo'] == my_algo]['time']).min()
     df_bench.at[index,'time_relative'] = row['time']/my_minimum_time
 
 p = (ggplot(df_bench) + aes('scaling_factor', 'time_relative', color='algo', group='algo')

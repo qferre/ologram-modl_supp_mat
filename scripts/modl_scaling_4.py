@@ -35,7 +35,7 @@ REPEATS = range(5) # Repeat all operations N times to get the average
 
 
 # Elementary operation (DL)
-SETS_NB = [6,8,10,12,14]    # Number of sets (columns)
+SETS_NB = [4,6,8,10,11,12,13,14,16,18,20,24]    # Number of sets (columns)
 
 
 
@@ -62,13 +62,15 @@ for _ in REPEATS:
         X_as_dataframe = pd.DataFrame(X)
 
         # Apriori
-        start_time = time.time()
-        myminer = Apriori(min_support = 1/100)
-        myminer.run_apriori(transactions)
-        results = myminer.produce_results()
-        stop_time = time.time()
+        # Cap it to the max number that is not unreasonable
+        if size<15:
+            start_time = time.time()
+            myminer = Apriori(min_support = 1/100)
+            myminer.run_apriori(transactions)
+            results = myminer.produce_results()
+            stop_time = time.time()
 
-        df_bench = df_bench.append({'set_nb':size, 'algo':'apriori_pure_python', 'time': stop_time-start_time}, ignore_index = True)   
+            df_bench = df_bench.append({'set_nb':size, 'algo':'apriori_pure_python', 'time': stop_time-start_time}, ignore_index = True)   
 
 
         # # Apriori
@@ -114,13 +116,18 @@ p.save(filename = OUTPUT_ROOT + "fig4_log10")
 
 
 
+
+
+
+
+
 # Normalized time to minimum set
 min_nb_sets = min(SETS_NB)
 minimum_time = df_bench[df_bench['set_nb'] == min_nb_sets][['algo','time']]
 df_bench['time_relative'] = df_bench['time'] # Placeholder
 for index, row in df_bench.iterrows():
     my_algo = row['algo']
-    my_minimum_time = minimum_time.loc[minimum_time['algo'] == my_algo]['time']
+    my_minimum_time = pd.to_numeric(minimum_time.loc[minimum_time['algo'] == my_algo]['time']).min()
     df_bench.at[index,'time_relative'] = row['time']/my_minimum_time
 
 p = (ggplot(df_bench) + aes('set_nb', 'time_relative', color='algo', group='algo')

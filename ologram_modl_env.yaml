@@ -5,10 +5,11 @@ channels:
   - anaconda
 dependencies:
   - python>=3.8
-  - pygtftk     # Contains OLOGRAM-MODL and all its dependencies
-  - snakemake   # For the workflow
-  - mlxtend     # For FP-growth
-  - openjdk     # To run certain /ext for tests
-  - r-base>=4.0 # R
-  - r-curl      # R package
-  - r-hdf5r     # R package
+  - pygtftk               # Contains OLOGRAM-MODL and all its dependencies
+  - snakemake             # For the workflow
+  - mlxtend               # For FP-growth
+  - openjdk               # To run certain /ext for tests
+  - r-base>=4.0           # R
+  - r-curl                # R package for curl
+  - r-hdf5r               # R package for HDF5 data save format
+  - scikit-learn==0.24.1  # Hardcode the version for reproducibility

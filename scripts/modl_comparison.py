@@ -6,7 +6,6 @@ import numpy as np
 np.random.seed(42)
 
 import pandas as pd
-from plotnine import ggplot, aes, geom_point, geom_line, scale_x_continuous
 
 import time
 import subprocess
@@ -61,15 +60,23 @@ modl_interesting_combis_no_smother = combi_miner.find_interesting_combinations()
 
 
 # Run MODL with word normalization
-x = test_data_for_modl(noise = 0.15)
+x = test_data_for_modl(noise = 0.12)
+
+
+"""
+0.15 is too much. 0.12 is what was in the paper.
+Should discuss that smothering will of course amplify noise when compared to not smothering
+"""
+
+
 combi_miner = Modl(x, multiple_overlap_max_number_of_combinations=3, normalize_words = True)
 modl_interesting_combis_normalized = combi_miner.find_interesting_combinations()
 
 
 print("-- MODL INTERESTING COMBINATIONS --")
-print(modl_interesting_combis)
+print("Standard =", modl_interesting_combis)
 print("No smother =", modl_interesting_combis_no_smother)
-print("Normalized", modl_interesting_combis_normalized)
+print("Normalized =", modl_interesting_combis_normalized)
 print("-------------------------------")
 
 
