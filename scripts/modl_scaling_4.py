@@ -22,7 +22,7 @@ from mlxtend.frequent_patterns import fpgrowth, apriori
 import matplotlib
 matplotlib.use("Agg")
 
-OUTPUT_ROOT = "output/benchmark/scaling" # Hardcoded for now. It was necessary to launch this script in shell and not via snakemake.script to allow proper redirection of the log
+OUTPUT_ROOT = "output/benchmark/scaling/" # Hardcoded for now. It was necessary to launch this script in shell and not via snakemake.script to allow proper redirection of the log
 
 
 

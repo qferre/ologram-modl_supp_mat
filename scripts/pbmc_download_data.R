@@ -19,15 +19,18 @@ print(getwd())
 
 ## Library
 if (!requireNamespace("BiocManager", quietly = TRUE)){
-  install.packages("BiocManager", repos="http://cran.us.r-project.org")
+  install.packages("BiocManager", repos="http://cran.us.r-project.org", dependencies = TRUE)
 }
 BiocManager::install()
-setRepositories(ind=1:2) # To automatically install Bioconductor dependencies
+setRepositories(ind=1:5) # To automatically install Bioconductor dependencies
 
 # Install Signac
 if (!requireNamespace("Signac")){
-  BiocManager::install(c("GenomeInfoDbData", "EnsDb.Hsapiens.v75"))
-  install.packages("Signac", repos="http://cran.us.r-project.org")
+  BiocManager::install(c("GenomeInfoDbData", 'BSgenome.Hsapiens.UCSC.hg19', 'EnsDb.Hsapiens.v75','BSgenome.Hsapiens.UCSC.hg38', 'EnsDb.Hsapiens.v86'))
+  
+  BiocManager::install(c("ggbio","chromVAR","TFBSTools","motifmatchr"))
+ 
+  install.packages("Signac", repos="http://cran.us.r-project.org", dependencies = TRUE)
 }
 
 
