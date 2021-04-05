@@ -71,8 +71,8 @@ rule prepare_incl:
 
         # And add another one
         cat input/mcf7_additional/*.bed > input/extended_all_mcf7.bed
-        awk 'NF{{NF-=3}};3' < input/extended_all_mcf7.bed > input/extended_all_mcf7_3col.bed
-        cat {output.incl} input/extended_all_mcf7_3col.bed | bedtools sort | bedtools merge > {output.incl_extended}
+        awk -F"\t" 'NF{{NF-=3}};3' < input/extended_all_mcf7.bed > input/extended_all_mcf7_3col.bed
+        cat {output.incl} input/extended_all_mcf7_3col.bed | sed -e 's/ /\t/g' bedtools sort | bedtools merge > {output.incl_extended}
 
         # Once done, move future query
         mv input/mcf7/foxa1.bed {output.query}
