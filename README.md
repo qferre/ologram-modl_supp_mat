@@ -14,7 +14,7 @@ snakemake -j4
 snakemake -n -p --reason
 
 # Example: cluster run with qsub
-snakemake -c 'qsub -q tagc -V -l nodes=1:ppn={threads}' -j25
+snakemake -c 'qsub -q tagc -V -l nodes=1:ppn={threads}' -j100
 
 ```
 

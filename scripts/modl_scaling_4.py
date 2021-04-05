@@ -35,7 +35,7 @@ REPEATS = range(5) # Repeat all operations N times to get the average
 
 
 # Elementary operation (DL)
-SETS_NB = [4,6,8,10,11,12,13,14,16,18,20,24]    # Number of sets (columns)
+SETS_NB = [6,8,10,11,12,13,14,16,18,20,24]    # Number of sets (columns), minimum of 6
 
 
 

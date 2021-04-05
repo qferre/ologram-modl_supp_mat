@@ -10,7 +10,7 @@ workdir: os.getcwd()
 # ---------------------------------------------------------------------------- #
 
 # When making many runs and merging them with ologram_merge_runs, how many should we make ?
-N_RUNS_TO_MERGE = 12 
+N_RUNS_TO_MERGE = 16 
 
 # How many threads to use for...
 THREADS_SIMPLE = 8                  # Jobs with small files (and RAM cost)
