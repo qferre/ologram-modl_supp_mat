@@ -33,8 +33,8 @@ REPEATS = range(5) # Repeat all operations N times to get the average
 
 
 # MODL
-SIZES = [6,9,12,24,30]  # Numbers of sets (columns)
-STEPS = [3,5,8,10,15,20,25] # Numbers of queried words
+SIZES = [6,9,12,18,24,30,40,50]  # Numbers of sets (columns)
+STEPS = [3,5,8,10,12,15,18,20,22,25,30] # Numbers of queried words
 
 
 ## ---------------------------- Time benchmarks ----------------------------- ##
