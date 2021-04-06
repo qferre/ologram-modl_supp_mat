@@ -9,7 +9,7 @@ from functools import partial
 import math
 from collections import Counter
 
-ROOT_PATH = "./output/ologram_result_sc-atac-seq/"
+ROOT_PATH = "./output/ologram_result_scatacseq_pbmc/"
 
 # Hardcode the superclusters
 SUPERCLUSTERS = {'CD14+_Monocytes':'cd14',
