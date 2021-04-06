@@ -92,7 +92,8 @@ def combination_to_combi_of_classes(combination):
     for element in combination:
         element_head = element[0:4]
         element_to_add = SUPERCLUSTERS[element_head]
-        if element_to_add is not "NA": new_combination += [element_to_add]
+        if element_to_add != "NA": 
+            new_combination += [element_to_add]
     return new_combination
 
 df['combination_classes'] = df['combination'].apply(combination_to_combi_of_classes)

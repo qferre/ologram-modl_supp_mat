@@ -34,12 +34,16 @@ OUTPUT_ROOT = "output/benchmark/scaling/" # Hardcoded for now. It was necessary 
 utils.VERBOSITY = 0 # We don't want to record debug messages for these tests
 REPEATS = range(5) # Repeat all operations N times to get the average
 
+## Elementary operation (DL) vs other itemset miners
 
+# Number of sets (columns), minimum of 6
+SETS_NB = [6,8,10,11,12,13,14,16,18,20,24]    
 
-# Elementary operation (DL)
-SETS_NB = [6,8,10,11,12,13,14,16,18,20,24]    # Number of sets (columns), minimum of 6
-
+# Data generation parameters
 NOISE = 0.5
+N_FLAGS = 100000
+
+# DL parameters
 ALPHA = 0
 N_ATOMS = 120
 

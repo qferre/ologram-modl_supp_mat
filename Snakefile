@@ -29,10 +29,10 @@ rule final:
                 testing_set = ['artificial','artificial_calibrate']), 
         "output/multovl_result_artificial_calibrate/calibrated.txt", # MULTOVL test
         # MCF7 - FOXA1 as query
-        #expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
-        #    testing_set = ['mcf7', 'mcf7_filtered','mcf7_manual']),
+        expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
+            testing_set = ['mcf7', 'mcf7_filtered','mcf7_manual']),
         # MCF7 - full DHS as query
-        #"output/tree_results/ologram_result_tree_mcf7_full_dhs.pdf",
+        "output/tree_results/ologram_result_tree_mcf7_full_dhs.pdf",
         # sc-ATAC-Seq and combination entropy
         "output/ologram_result_scatacseq_pbmc/done", 
         # Murine promoters
@@ -40,8 +40,10 @@ rule final:
         # Comparison with GINOM
         "output/ologram_result_ginom/00_ologram_stats.tsv",
         ## MODL benchmarks
-        #"output/benchmark/comparison/done",
-        #expand("output/benchmark/scaling/fig{n}.png", n = [1,2,3,4,5])
+        "output/benchmark/comparison/done",
+        expand("output/benchmark/scaling/fig{n}.png", n = [1,2]),
+        # Elementary benchmarks
+        expand("output/benchmark/scaling/fig{n}.png", n = [3,4,5])
     shell: """
     # Produce a summary graph
     snakemake --forceall --dag | dot -Tsvg > output/dag.svg
@@ -500,7 +502,7 @@ rule run_on_ginom_data:
     mkdir -p output/ologram_result_ginom
     
     # With MODL
-    gtftk ologram -z -c hg19 -p {input.query} --more-bed {params.trs}\
+    gtftk ologram -z -c hg19 -p {input.query} --more-bed {params.trs} \
         -o output/ologram_result_ginom_filtered --force-chrom-peak --force-chrom-more-bed --no-date \
         -k {threads} -mn {params.minibatch_number} -ms {params.minibatch_size} -V 3 \
         --more-bed-multiple-overlap --bed-incl {input.incl} \
@@ -510,7 +512,7 @@ rule run_on_ginom_data:
     gtftk ologram -z -c hg19 -p {input.query} --more-bed {params.trs}\
         -o output/ologram_result_ginom --force-chrom-peak --force-chrom-more-bed --no-date \
         -k {threads} -mn {params.minibatch_number} -ms {params.minibatch_size} -V 3 \
-        --more-bed-multiple-overlap --bed-incl {input.incl} \      
+        --more-bed-multiple-overlap --bed-incl {input.incl}      
     """
 
 

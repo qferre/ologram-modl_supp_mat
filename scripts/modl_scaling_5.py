@@ -28,11 +28,15 @@ utils.VERBOSITY = 0 # We don't want to record debug messages for these tests
 REPEATS = range(5) # Repeat all operations N times to get the average
 
 
-# Elementary operation (DL)
-LINES_NB = [1,2,5,8,10,15,20,25,40,50]  # Numbers of lines (in thousands)
+## Elementary operation (DL) vs other itemset miners
 
+# Number of lines (in thousands)
+LINES_NB = [1,2,5,8,10,15,20,25,40,50]  
+
+# Data generation parameters
 NOISE = 0.5
 
+# DL parameters
 ALPHA = 0
 
 

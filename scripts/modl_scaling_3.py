@@ -28,11 +28,15 @@ OUTPUT_ROOT = "output/benchmark/scaling/" # Hardcoded for now. It was necessary 
 utils.VERBOSITY = 0 # We don't want to record debug messages for these tests
 REPEATS = range(5) # Repeat all operations N times to get the average
 
-# Elementary operation (DL)
+## Elementary operation (DL) vs other itemset miners
+
 # Number of words, and 1/min_support for the comparisons
 SCALING_FACTORS =  [1,2,5,10,25,30,40,50,75,100,150,200,300,500]    
 
+# Data generation parameters
 NOISE = 0.5
+
+# DL parameters
 ALPHA = 0.5
 
 ## -------------- Elementary operation benchmark : apriori vs fpgrowth vs dict learning
