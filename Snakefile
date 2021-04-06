@@ -29,10 +29,10 @@ rule final:
                 testing_set = ['artificial','artificial_calibrate']), 
         "output/multovl_result_artificial_calibrate/calibrated.txt", # MULTOVL test
         # MCF7 - FOXA1 as query
-        expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
-            testing_set = ['mcf7', 'mcf7_filtered','mcf7_manual']),
+        #expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
+        #    testing_set = ['mcf7', 'mcf7_filtered','mcf7_manual']),
         # MCF7 - full DHS as query
-        "output/tree_results/ologram_result_tree_mcf7_full_dhs.pdf",
+        #"output/tree_results/ologram_result_tree_mcf7_full_dhs.pdf",
         # sc-ATAC-Seq and combination entropy
         "output/ologram_result_scatacseq_pbmc/done", 
         # Murine promoters
@@ -40,8 +40,8 @@ rule final:
         # Comparison with GINOM
         "output/ologram_result_ginom/00_ologram_stats.tsv",
         ## MODL benchmarks
-        "output/benchmark/comparison/done",
-        expand("output/benchmark/scaling/fig{n}.png", n = [1,2,3,4,5])
+        #"output/benchmark/comparison/done",
+        #expand("output/benchmark/scaling/fig{n}.png", n = [1,2,3,4,5])
     shell: """
     # Produce a summary graph
     snakemake --forceall --dag | dot -Tsvg > output/dag.svg
@@ -700,6 +700,8 @@ rule ologram_sc_atac_seq_analysis:
     input: expand("output/ologram_result_scatacseq_pbmc/run_{runid}/00_ologram_stats.tsv", runid = range(N_RUNS_TO_MERGE))
     output: "output/ologram_result_scatacseq_pbmc/done"
     shell: """
+    mkdir -p output/ologram_result_scatacseq_pbmc/entropy_graph/
+
     # Merge those runs
     gtftk ologram_merge_runs --inputfiles `ls output/ologram_result_scatacseq_pbmc/*/*.tsv` -o output/ologram_result_scatacseq_pbmc/merged_batches_result.tsv -V 3
 

@@ -118,6 +118,6 @@ for length in all_lengths:
                 + geom_violin(position = position_dodge(1), width = 1)
                 + geom_boxplot(position = position_dodge(1), width = 0.25))
 
-        p.save(filename = ROOT_PATH + "entropy_length_" + str(length) + ".png")
+        p.save(filename = ROOT_PATH + "entropy_graph/entropy_length_" + str(length) + ".png")
     except:
         print("Skipping a length causing an error")
