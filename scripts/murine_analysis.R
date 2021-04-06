@@ -4,8 +4,6 @@ setwd(this.dir)
 print(getwd())
 
 
-
-
 # Install packages
 if (!requireNamespace("UpSetR")){
   install.packages(c("UpSetR"))
@@ -23,9 +21,7 @@ library(reshape2)
 library(patchwork)
 library(latex2exp)
 
-
 d <- read.table("all_ologram_results.txt", head=T, sep="\t")
-
 
 # Compute -log10(pval)
 d$summed_bp_overlaps_pvalue[d$summed_bp_overlaps_pvalue == 0] <- 1e-320
@@ -35,13 +31,11 @@ d$log10_pval <- -log10(d$summed_bp_overlaps_pvalue)
 ## Extract ("regexp with capture '()'") the query name
 d$query <- str_match(d$query, "-([0-9A-Za-z]+)/00_ologram.*")[,2]
 
-## Extract the combination.
+## Extract the combination
 tmp <- lapply(strsplit(as.character(d$feature_type), "\\+"), str_match, "_([^_]+)_")
 
-## Ca c'est très laid mais ça marche...
+# Quick hack
 tmp <- lapply(tmp, "[", i=,j=2)
-
-## Mon dieu :)
 tmp <- lapply(lapply(lapply(tmp, "[", -1), rev), "[", -1)
 
 all_features <- unique(unlist(tmp))
@@ -53,7 +47,7 @@ for(i in 1:length(tmp)){
   }
 }
 
-## Prépare a binary matrix with TF as col and combi as row 
+## Prepare a binary matrix with TF as col and combi as row 
 feature_mat <- as.data.frame(feature_mat)
 feature_mat$degree <- rowSums(feature_mat) + 1
 d <- cbind(d, as.matrix(feature_mat))
@@ -62,7 +56,6 @@ d <- cbind(d, as.matrix(feature_mat))
 d$color <-as.character(factor(d$query, levels=brewer.pal(3,"Paired")))
 
 d$combination <- 1:nrow(d)
-
 
 dm <- melt(data = d, id.vars = c("degree",
                                  "summed_bp_overlaps_true",
@@ -77,53 +70,15 @@ dm$Factors <- dm$variable
 
 
 
+# Previously, we ordered combination levels by p-val
+#dm$combination <- factor(dm$combination, ordered = T, levels = unique(as.character(dm$combination[order(dm$log10_pval, dm$summed_bp_overlaps_log2_fold_change, decreasing = T)])))
 
-
-
-
-
-
-
-
-
-### Order combination levels by p-val
-dm$combination <- factor(dm$combination, ordered = T, levels = unique(as.character(dm$combination[order(dm$log10_pval, dm$summed_bp_overlaps_log2_fold_change, decreasing = T)])))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### Order combination levels by SUMMED BP OVERLAPS
+## Order combination levels by *summed basepairs in the true overlaps*
 dm$combination <- factor(dm$combination, ordered = T, levels = unique(as.character(dm$combination[order(dm$summed_bp_overlaps_true, decreasing = T)])))
-
-
-
-
-
-
-
-
-
-
-
-
 
 dm$Factors <- factor(dm$Factors, levels=c("Ctcf", "Rad21", "Smc1a", "Smc3",
                                             "Irf1", "Irf9", "Stat1", "Stat6",
                                             "Nanog","Pou5f1","Klf4", "Sox2"), order=T)
-
 
 
 ### Point colors
@@ -133,28 +88,8 @@ dm$Dataset[dm$Dataset %in% c("Irf1", "Irf9", "Stat1", "Stat6")] <- "Interferon\n
 dm$Dataset[dm$Dataset %in% c("Nanog","Pou5f1","Klf4", "Sox2")] <- "Stem cells"
 
 
-
 ### Take the n best combi for each query
-n_best <- 20
-
-
-######################################################
-######################################################
-######################################################
-# TODO 15 should suffice
-######################################################
-######################################################
-######################################################
-
-
-
-
-
-
-
-
-
-
+n_best <- 15
 
 dm %>% 
   arrange(desc(query)) %>% 
@@ -207,12 +142,4 @@ p3 <- ggplot(dm_sub,aes(x=combination, y = summed_bp_overlaps_log2_fold_change))
   ylab(TeX('$log2(\\sum bp_{obs}/ \\sum bp_{sim})$'))  
   
 
-
 ggsave("murine_fig.png", plot = p2 / p3 / p1, width = 12, height = 8, dpi = 200)
-
-
-
-
-
-
-# TODO : save separately so I can squish more the bars compared to the dots of combination presence

@@ -6,7 +6,7 @@ import numpy as np
 np.random.seed(42)
 
 import pandas as pd
-from plotnine import ggplot, aes, geom_point, geom_line, geom_smooth, scale_x_continuous, scale_y_log10
+from plotnine import ggplot, aes, geom_point, geom_line, geom_smooth, scale_x_continuous, scale_y_log10, xlab, ylab
 
 import time
 
@@ -23,14 +23,9 @@ matplotlib.use("Agg")
 OUTPUT_ROOT = "output/benchmark/scaling/" # Hardcoded for now. It was necessary to launch this script in shell and not via snakemake.script to allow proper redirection of the log
 
 
-
 ## ---------------------------- Parameters ---------------------------------- ##
-
 utils.VERBOSITY = 0 # We don't want to record debug messages for these tests
-
 REPEATS = range(5) # Repeat all operations N times to get the average
-
-
 
 # MODL
 SIZES = [6,9,12,18,24,30,40,50]  # Numbers of sets (columns)
@@ -39,11 +34,8 @@ STEPS = [3,5,8,10,12,15,18,20,22,25,30] # Numbers of queried words
 
 ## ---------------------------- Time benchmarks ----------------------------- ##
 
-
-
-
 ## Number of sets
-df_bench = pd.DataFrame(columns = ['nb_sets','time'])   # Prepare df
+df_bench = pd.DataFrame(columns = ['nb_sets','time'])   # Prepare dataframe
 
 for _ in REPEATS:
 
@@ -59,13 +51,13 @@ for _ in REPEATS:
 
 df_bench['nb_sets'] = df_bench['nb_sets'].astype(int)
 p = (ggplot(df_bench) + aes('nb_sets', 'time')
- + geom_point() + geom_smooth() + scale_x_continuous())
+ + geom_point() + geom_smooth() + scale_x_continuous()
+ + xlab("Number of sets") + ylab("Time (seconds)"))
 p.save(filename = OUTPUT_ROOT + "fig1")
 
 
 ## Number of queried words
 df_bench = pd.DataFrame(columns = ['step','time'])
-
 
 X = test_data_for_modl(nflags = 20000, number_of_sets = 8, noise = 0.5)
 
@@ -81,20 +73,6 @@ for _ in REPEATS:
 
 df_bench['step'] = df_bench['step'].astype(int)
 p = (ggplot(df_bench) + aes('step', 'time')
- + geom_point() + geom_smooth() + scale_x_continuous())
+ + geom_point() + geom_smooth() + scale_x_continuous()
+ + xlab("Queried nb. of atoms") + ylab("Time (seconds)"))
 p.save(filename = OUTPUT_ROOT + "fig2")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

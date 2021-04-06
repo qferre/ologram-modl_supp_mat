@@ -9,17 +9,18 @@ workdir: os.getcwd()
 #                                 Parameters                                   #
 # ---------------------------------------------------------------------------- #
 
-# When making many runs and merging them with ologram_merge_runs, how many should we make ?
+# When making many runs and merging them with ologram_merge_runs, how many 
+# should we make ?
 N_RUNS_TO_MERGE = 16 
 
 # How many threads to use for...
-THREADS_SIMPLE = 8                  # Jobs with small files (and RAM cost)
-THREADS_SIMPLE_HIGH_COMPUTE = 8     # Simple jobs but with demanding algorithms (MODL)
+THREADS_SIMPLE = 8                  # Jobs with small files (and small RAM cost)
+THREADS_SIMPLE_HIGH_COMPUTE = 8     # Simple jobs but with demanding algorithms (ie. MODL)
 THREADS_DEMANDING = 4               # Jobs with a potentially high RAM cost per thread
 
 # ---------------------------------------------------------------------------- #
 
-# Query the final trees and the benchmarks
+## Query the final trees and the benchmarks
 rule final:
     input: 
         ## OLOGRAM results
@@ -41,8 +42,8 @@ rule final:
         ## MODL benchmarks
         "output/benchmark/comparison/done",
         expand("output/benchmark/scaling/fig{n}.png", n = [1,2,3,4,5])
-    shell:"""
-    # Produce a graph, for giggles
+    shell: """
+    # Produce a summary graph
     snakemake --forceall --dag | dot -Tsvg > output/dag.svg
     snakemake --forceall --rulegraph | dot -Tsvg > output/rulegraph.svg
     """
@@ -93,7 +94,7 @@ rule uncompress:
         "input/hg38.genome",
         "input/artificial_simple.genome",
 
-    shell:"""
+    shell: """
         gunzip input/*.gz
         gunzip input/*/*.gz    
     """
@@ -159,7 +160,7 @@ rule prepare_artificial_calibrate:
         b = "output/artificial_data_calibrate/data/28pc.bed"
 
     params:
-        size=10, length=250   # Remember that size is multiplied by 100 later !
+        size=10, length=250   # Note that size is multiplied by 100 later
 
     shell: """
    
@@ -208,13 +209,11 @@ rule prepare_sc_atac_seq_bedfiles:
 
 
 
-
-
 rule download_murine_chip:
     """
     Download murine ChIP-Seq and prepare bed-incl file.
 
-    I slop TSS by 1kb left to estimate promoters
+    Also slop TSS by 1kb to the left to estimate promoters, if required.
     """
     input:
         sources = "input/murine_chipatlas.txt"
@@ -352,8 +351,10 @@ rule mcf7_manual_filtering:
 rule mcf7_full_dhs:
     """
     For a the MCF7 cell line, compute the enrichment in n-wise TF combinations 
-    using OLOGRAM-MODL. The query is not FOXA1, but the DHS regions in MCF7. We restrict to those regions as well.
-    This time however, I will use ReMap 2018 full data for 40 TFs, not something curated.
+    using OLOGRAM-MODL. The query is not FOXA1, but the DHS regions in MCF7. 
+    We restrict to those regions as well.
+    This time however, I will use ReMap 2018 full data for 40 TFs, not something
+    curated in advance.
     """
     input: 
         query = "input/DNAse-seq_MCF7_ENCSR000EPH_rep1_1_se_bwa_biorep_filtered_peaks_aka_ENCFF961ZCT.bed",
@@ -411,9 +412,7 @@ rule produce_modl_scaling:
         err= "output/benchmark/scaling/scaling_benchmark_1_2_ERROR_LOG.txt",
         out= "output/benchmark/scaling/scaling_benchmark_1_2.txt"
 
-    shell:"""
-
-    
+    shell:"""  
     mkdir -p output/benchmark/scaling
 
     # Print information about the CPU
@@ -462,10 +461,10 @@ rule modl_elementary_scaling_3:
 
 
 
-
 rule run_on_ginom_data:
     """
-    For comparison with GINOM, run on their example data files instead and compare the results.
+    For comparison with GINOM, run on their example data files instead and 
+    compare the results.
 
     NOTE: here is how I converted their data.
 
@@ -556,21 +555,18 @@ rule run_ologram_murine:
 
     gtftk ologram -z -f -w -q -c mm10 -p output/murine_data/selected_tf/SRX1815531-Ctcf-Blood.bed \
         --more-bed `ls output/murine_data/selected_tf/* | grep -vi ctcf` --more-bed-multiple-overlap --no-date \
-        -k {threads} -V 3 -j summed_bp_overlaps_pvalue -a summed_bp_overlaps_pvalue -g 0.05 -o output/murine_result/SRX1815531-Ctcf \
-        -mn {params.minibatch_number} -ms {params.minibatch_size}
-        #--bed-incl {input.incl} -mn {params.minibatch_number} -ms {params.minibatch_size}
+        -k {threads} -V 3 -j summed_bp_overlaps_pvalue -a summed_bp_overlaps_pvalue -g 0.05 -o output/murine_result_restricted/SRX1815531-Ctcf \
+        -mn {params.minibatch_number} -ms {params.minibatch_size} --bed-incl {input.incl}
 
     gtftk ologram -z -f -w -q -c mm10 -p output/murine_data/selected_tf/SRX1583885-Irf1-Blood.bed \
         --more-bed `ls output/murine_data/selected_tf/* | grep -vi Irf1` --more-bed-multiple-overlap --no-date \
-        -k {threads} -V 3  -j summed_bp_overlaps_pvalue -a summed_bp_overlaps_pvalue -g 0.05 -o output/murine_result/SRX1583885-Irf1 \
-        -mn {params.minibatch_number} -ms {params.minibatch_size}
-        #--bed-incl {input.incl} -mn {params.minibatch_number} -ms {params.minibatch_size}
+        -k {threads} -V 3  -j summed_bp_overlaps_pvalue -a summed_bp_overlaps_pvalue -g 0.05 -o output/murine_result_restricted/SRX1583885-Irf1 \
+        -mn {params.minibatch_number} -ms {params.minibatch_size} --bed-incl {input.incl}
 
     gtftk ologram -z -f -w -q -c mm10 -p output/murine_data/selected_tf/ERX1633247-Nanog-Pluripotent_stem_cell.bed \
         --more-bed `ls output/murine_data/selected_tf/* | grep -vi nanog` --more-bed-multiple-overlap --no-date \
-        -k {threads} -V 3  -j summed_bp_overlaps_pvalue -a summed_bp_overlaps_pvalue -g 0.05 -o output/murine_result/ERX1633247-Nanog \
-        -mn {params.minibatch_number} -ms {params.minibatch_size}
-        #--bed-incl {input.incl} -mn {params.minibatch_number} -ms {params.minibatch_size}
+        -k {threads} -V 3  -j summed_bp_overlaps_pvalue -a summed_bp_overlaps_pvalue -g 0.05 -o output/murine_result_restricted/ERX1633247-Nanog \
+        -mn {params.minibatch_number} -ms {params.minibatch_size} --bed-incl {input.incl}
     """
 
 
@@ -584,7 +580,8 @@ rule run_artificial:
     """
     Run OLOGRAM-MODL on artificial data.
 
-    Calibrated data is an easier class of data, where p-values are higher, for comparision with tools using empirical p-vals.
+    Calibrated data is an easier class of data, where p-values are higher, for 
+    comparision with tools using empirical p-valuess.
     """
     input:
         query = "output/artificial_data/query.bed",
@@ -621,7 +618,8 @@ rule run_multovl_on_artificial:
     Run MULTOVL to confirm the p-values on the artificial calibrated data. 
     Also run on the regular artificial data to show its precision bottoms out.
 
-    Comparably to OLOGRAM, the free regions here (equivalent of bed-incl) will be made of all the genome.
+    Comparably to OLOGRAM, the free regions here (equivalent of bed-incl) will
+    be made of all the genome.
     """
     input:
         query = "output/artificial_data/query.bed",
@@ -632,7 +630,7 @@ rule run_multovl_on_artificial:
         calibrated = 'output/multovl_result_artificial_calibrate/calibrated.txt'
 
     params:
-        shuffle_numbers = 200, # TODO : Same number as OLOGRAM. Perhaps up it to 1000 or 2000 ?
+        shuffle_numbers = 200,
         peaks = get_peaks_artificial,
         peaks_calibrate = get_peaks_artificial_calibrate,
         peaks_calibrate_as_list = get_peaks_artificial_calibrate_as_list,
@@ -721,7 +719,7 @@ rule process_ologram_results_murine:
     input: expand("output/murine_result/{run}/00_ologram_stats.tsv", run= ["SRX1815531-Ctcf","SRX1583885-Irf1","ERX1633247-Nanog"])
     output: "output/murine_result/murine_fig.png"
     shell: """
-
+    
     ## Merging OLOGRAM results
     # Print the data and a supplementary column for file names
     cat output/murine_result/*X*/*tsv | head -n 1 | awk 'BEGIN{{FS=OFS="\t"}}{{print $0,"query"}}'> output/murine_result/all_ologram_results.txt

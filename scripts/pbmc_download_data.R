@@ -1,20 +1,7 @@
-# Source (to add to paper) : https://satijalab.org/signac/articles/pbmc_vignette.html
-
-
-
-
 # NOTE : this will be executed by a Snakefile, so the point of execution is the root of the entire directory
 this.dir = "./output/sc_atac_seq_pbmc_data/"
 setwd(this.dir)
 print(getwd())
-
-
-
-
-
-
-
-
 
 
 ## Library
@@ -47,113 +34,35 @@ set.seed(1234)
 
 
 
-
-
-
-
 ## Download and read the data from Signac PBMC vignette
 
 # Download all
 options(timeout = 3600)
 
-destfile = "atac_v1_pbmc_10k_filtered_peak_bc_matrix.h5"
-if (!file.exists(destfile)) { download.file("https://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_10k/atac_v1_pbmc_10k_filtered_peak_bc_matrix.h5", destfile = destfile) }
-destfile = "atac_v1_pbmc_10k_singlecell.csv"
-if (!file.exists(destfile)) { download.file("https://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_10k/atac_v1_pbmc_10k_singlecell.csv", destfile = destfile) }
-
-destfile = "atac_v1_pbmc_10k_fragments.tsv.gz"
-if (!file.exists(destfile)) { download.file("https://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_10k/atac_v1_pbmc_10k_fragments.tsv.gz", destfile = destfile) }
-destfile = "atac_v1_pbmc_10k_fragments.tsv.gz.tbi"
-if (!file.exists(destfile)) { download.file("https://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_10k/atac_v1_pbmc_10k_fragments.tsv.gz.tbi", destfile = destfile) }
-
-destfile = "pbmc_10k_v3.rds"
-if (!file.exists(destfile)) { download.file("https://www.dropbox.com/s/zn6khirjafoyyxl/pbmc_10k_v3.rds?dl=1", destfile = destfile) }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 # Counts
+destfile = "atac_v1_pbmc_10k_filtered_peak_bc_matrix.h5"
+if (!file.exists(destfile)) { download.file("https://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_10k/atac_v1_pbmc_10k_filtered_peak_bc_matrix.h5", destfile = destfile) }
 counts <- Read10X_h5(filename = "atac_v1_pbmc_10k_filtered_peak_bc_matrix.h5")
 # From the vignette : each row of the matrix represents a region of the genome (a peak), that is predicted to represent a region of open chromatin. 
 # Each value in the matrix represents the number of Tn5 integration sites for each single barcode (i.e. a cell) that map within each peak
 
 # Metadata
+destfile = "atac_v1_pbmc_10k_singlecell.csv"
+if (!file.exists(destfile)) { download.file("https://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_10k/atac_v1_pbmc_10k_singlecell.csv", destfile = destfile) }
 metadata <- read.csv(file = "atac_v1_pbmc_10k_singlecell.csv",
   header = TRUE, row.names = 1)
 
 # Fragment file and index
+destfile = "atac_v1_pbmc_10k_fragments.tsv.gz"
+if (!file.exists(destfile)) { download.file("https://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_10k/atac_v1_pbmc_10k_fragments.tsv.gz", destfile = destfile) }
+destfile = "atac_v1_pbmc_10k_fragments.tsv.gz.tbi"
+if (!file.exists(destfile)) { download.file("https://cf.10xgenomics.com/samples/cell-atac/1.0.1/atac_v1_pbmc_10k/atac_v1_pbmc_10k_fragments.tsv.gz.tbi", destfile = destfile) }
 # From the vignette : This represents a full list of all unique fragments across all single cells (not just those associated to peaks)
 
 
+destfile = "pbmc_10k_v3.rds"
+if (!file.exists(destfile)) { download.file("https://www.dropbox.com/s/zn6khirjafoyyxl/pbmc_10k_v3.rds?dl=1", destfile = destfile) }
 
 
 ## Create Signac objects
@@ -179,18 +88,8 @@ Annotation(pbmc) <- annotations
 
 
 
-
-# Okay I'll need to run the entire vignette to get the clusters...
-# WARNING IT'S ON HG19 ! NEED TO DOWNLOAD THE HG19 GENOME, OR SPECIFY IT ON SNAKEMAKE !
-
-
-
-
-# To get the atackseq data : 
-#pbmc[['peaks']]# THIS IS WAT I'll USE FOR BED FILE CREATION
-# To get the associated genomic ranges:
-#granges(pbmc)
-
+# NOTE: to get the atackseq data, use `pbmc[['peaks']]`
+# To get the associated genomic ranges, use `granges(pbmc)`
 
 ## Quality control
 
@@ -224,7 +123,6 @@ pbmc <- FindClusters(object = pbmc, verbose = FALSE, algorithm = 3)
 #DimPlot(object = pbmc, label = TRUE) + NoLegend()
 
 
-
 # Gene activity matrix, using chromatin accessibility as proxy for activity
 gene.activities <- GeneActivity(pbmc)
 pbmc[['RNA']] <- CreateAssayObject(counts = gene.activities)
@@ -233,6 +131,7 @@ pbmc <- NormalizeData(object = pbmc,
   scale.factor = median(pbmc$nCount_RNA)
 )
 DefaultAssay(pbmc) <- 'RNA'
+
 
 ## Load names from transversal scRNA-Seq study
 
@@ -249,15 +148,12 @@ predicted.labels <- TransferData(
 
 pbmc <- AddMetaData(object = pbmc, metadata = predicted.labels)
 
-
 #plot1 <- DimPlot( object = pbmc_rna, group.by = 'celltype',label = TRUE,repel = TRUE) + NoLegend() + ggtitle('scRNA-seq')
 #plot2 <- DimPlot( object = pbmc, group.by = 'predicted.labels',label = TRUE, repel = TRUE) + NoLegend() + ggtitle('scATAC-seq')
 #plot1 + plot2
 
 
-
 # Change names
-# TODO CHECK I HAVE SAME RESULTS THAN VIGNETTE
 pbmc <- subset(pbmc, idents = 14, invert = TRUE)
 pbmc <- RenameIdents(
   object = pbmc,
@@ -278,7 +174,6 @@ pbmc <- RenameIdents(
 )
 
 
-
 DefaultAssay(pbmc) <- 'peaks' # Important, change back to working with peaks instead of gene activities
 
 
@@ -295,27 +190,13 @@ DefaultAssay(pbmc) <- 'peaks' # Important, change back to working with peaks ins
 # )
 
 
-
-
-
-# To get the scatacseq data : 
-#pbmc[['peaks']]# THIS IS WAT I'll USE FOR BED FILE CREATION
-# To get the associated genomic ranges:
-#granges(pbmc)
-
 # Translation between peaks's column name and cell id + predicted type
 translation = data.frame(class = pbmc$predicted.id, id = pbmc$cell_id)
-# Might need to be prediced.labels ? See when running it all at once !
 write.table(translation, file="cell_to_class.tsv", sep = '\t')
 
 ## Convert to BED
 
 ifelse(!dir.exists("bed"), dir.create("bed"), FALSE) # Create directory
-
-
-
-
-
 
 
 
@@ -330,24 +211,18 @@ message_parallel <- function(...){
   
 signal_to_bed = function(j){
   
-  
   # Get the vector of signal for this cell, giving the signal or absence thereof
   # at each candidate region
   signal_this_tag = data.frame(
     pbmc[['peaks']][1:nrow(pbmc[['peaks']]), j], check.names = FALSE
     )
   
-
   # Get the tag's id and predicted class
   tag = colnames(signal_this_tag)
   tag_id = translation[tag,"id"]
   tag_class = translation[tag,"class"]
   tag_class = chartr(" ", "_", tag_class)
-  
-  #print(tag)
-  
-  
-  
+   
   # Open a BED file
   bed_dir = paste("bed/",tag_class,"/", sep = '')
   bedpath = paste(bed_dir,tag_id,".bed", sep = '')
@@ -357,7 +232,6 @@ signal_to_bed = function(j){
   # For each region (row), write it to the BED file if detected in this cell
   for(i in 1:nrow(signal_this_tag)) {
     signal = signal_this_tag[i,1]
-    
     
     # Since we work on the peaks matric and not on the fragments themselves,
     # I binarize the counts value 
@@ -372,20 +246,9 @@ signal_to_bed = function(j){
   message_parallel("Cell tag ",j,"/",n_tags,"complete.")
   
   return(TRUE)
-
 }
 
 res = mclapply(1:n_tags, signal_to_bed, mc.cores = 4)
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -404,48 +267,19 @@ for (region in all_regions) {
 
 
 
-
-
-
-
-
-# ------ Final step : random selection
-
-
+## ------ Final step: random selection
 # Randomly select 50 cells from CD14, 25 from CD4 and 25 from CD8
 
 ifelse(!dir.exists("bed_selected"), dir.create("bed_selected"), FALSE)
 
-
 draw_for_this_type = function(cell_type, size, randomize = FALSE){
-
-
-
-
-
-
-
-
-
-
-  # TAKE THE TOP N INSTEAD IF RANDOMLIZE IS FALSE !!!!!
-
-
-
-
-
-
-
-
-
-
 
   # Get file list with full path 
   dirpath = paste("bed/",cell_type, sep = "")
   files <- list.files(dirpath, full.names = TRUE)
   
-
-  # Select the desired number of files by simple random sampling, or just take the top N 
+  # Select the desired number of files by simple random sampling,
+  # or just take the top N if `randomize` is False
   if (randomize) {
     randomize <- sample(seq(files))
     files2analyse <- files[randomize] 
@@ -455,7 +289,6 @@ draw_for_this_type = function(cell_type, size, randomize = FALSE){
   }
   
   files2analyse <- files2analyse[(1:size)]
-
 
   # Move files
   for(i in seq(files2analyse)){
@@ -467,18 +300,3 @@ draw_for_this_type("CD14+_Monocytes", 30, FALSE)
 draw_for_this_type("CD4_Naive", 15, FALSE)
 draw_for_this_type("CD8_Naive", 15, FALSE)
 draw_for_this_type("pre-B_cell", 15, FALSE)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Maybe : do the background of all_merged with ALL FILES, BEFORE MERGING, NOT JUST WITH THE RANDOMLY SELECTED ONES !!!!!

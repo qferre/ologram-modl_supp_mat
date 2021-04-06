@@ -15,7 +15,9 @@ from pygtftk.stats.intersect.modl.apriori import Apriori, matrix_to_list_of_tran
 from pygtftk.stats.intersect.modl.subroutines import learn_dictionary_and_encode
 from pygtftk import utils
 
-OUTPUT_ROOT = "output/benchmark/comparison" # Hardcoded for now. It was necessary to launch this script in shell and not via snakemake.script to allow proper redirection of the log
+# Hardcoded for now. It was necessary to launch this script in 
+# shell and not via snakemake.script to allow proper redirection of the log
+OUTPUT_ROOT = "output/benchmark/comparison" 
 
 # Debug : plots are not shown, only printed, so use Agg backend for matplotlib
 import matplotlib
@@ -30,8 +32,8 @@ names = [str(i) for i in range(NB_SETS)]
 x = test_data_for_modl(nflags = 10000, number_of_sets = NB_SETS,
     noise = 0.12, cor_groups = [(0,1),(0,1,2,3),(4,5)])
 
-transactions = matrix_to_list_of_transactions(x, names) # Convert to list of transactions
-
+# Convert to list of transactions
+transactions = matrix_to_list_of_transactions(x, names) 
 
 
 
@@ -45,7 +47,7 @@ combi_miner = Modl(x,
     nb_threads = 8,                                     # Full multithreading
     smother = True,                                     # Reduce each row's abundance to its square root. Helps find rarer combinations but magnifies the noise.
     step_1_factor_allowance = 2,                        # Optional : How many words to ask for in each step 1 rebuilding
-    normalize_words = True,                            # Normalize word sum of square in step 2
+    normalize_words = True,                             # Normalize word sum of square in step 2
     step_2_alpha = None)                                # Override the sparsity control in step 2
 modl_interesting_combis = combi_miner.find_interesting_combinations()
 
@@ -85,8 +87,6 @@ print("-------------------------------")
 
 
 
-
-
 # FP-Growth
 from mlxtend.frequent_patterns import fpgrowth
 x_as_dataframe = pd.DataFrame(x)
@@ -107,34 +107,25 @@ fpgrowth(x_as_dataframe, min_support=MIN_SUPPORT)
 #         f.write(format_list_brackets(item)+'\n')
 
 
-
-
 # And in the specific SPMF format
-# TODO UNHARDCODE THIS
-OUTPUT_ROOT = "../output/benchmark/comparison"
-
 with open(OUTPUT_ROOT+'/artiftransact.txt', 'w+') as f:
     for item in transactions: f.write(' '.join(item)+'\n')
 
 
 
 ## --- Manual itemsets miners
+# Present in the /ext directory
 
-"""
-The miners will be in the /ext directory
-"""
 
-# TODO add SPMF source as citation in paper for those implementations
-
-# TODO Run LCM
+# Run LCM
 command_line = ["java -jar","./ext/spmf.jar", # Java SPMF toolset
     "run",
-    "LCM", # Algorithm
-    OUTPUT_ROOT+"/artiftransact.txt", # Query file
-    OUTPUT_ROOT+"/output_lcm.txt",
-    str(round(MIN_SUPPORT*100))+"%" # Min support
+    "LCM",                              # Algorithm
+    OUTPUT_ROOT+"/artiftransact.txt",   # Query file
+    OUTPUT_ROOT+"/output_lcm.txt",      # Output
+    str(round(MIN_SUPPORT*100))+"%"     # Min support (parameter)
     ] 
 
-
-# NOTE Remember that in subprocess.run, the command line must be a list of arguments and not a string of the command
+# NOTE Remember that in subprocess.run, the command line must be a list of 
+# arguments and not a string of the command
 stdout_captured = subprocess.run(command_line, stdout=subprocess.PIPE, universal_newlines=True).stdout

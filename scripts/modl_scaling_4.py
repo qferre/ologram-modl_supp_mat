@@ -2,11 +2,15 @@
 Run a scaling benchmark on MODL, dictionary learning and Apriori using artificial data matrices.
 """
 
+#ADD `+ xlab("label") + ylab("Label")` everywhere !!!!! ALL FIGURES !
+
+
+
 import numpy as np
 np.random.seed(42)
 
 import pandas as pd
-from plotnine import ggplot, aes, geom_point, geom_line, geom_smooth, scale_x_continuous, scale_y_log10
+from plotnine import ggplot, aes, geom_point, geom_line, geom_smooth, scale_x_continuous, scale_y_log10, xlab, ylab
 
 import time
 
@@ -27,9 +31,7 @@ OUTPUT_ROOT = "output/benchmark/scaling/" # Hardcoded for now. It was necessary 
 
 
 ## ---------------------------- Parameters ---------------------------------- ##
-
 utils.VERBOSITY = 0 # We don't want to record debug messages for these tests
-
 REPEATS = range(5) # Repeat all operations N times to get the average
 
 
@@ -37,19 +39,16 @@ REPEATS = range(5) # Repeat all operations N times to get the average
 # Elementary operation (DL)
 SETS_NB = [6,8,10,11,12,13,14,16,18,20,24]    # Number of sets (columns), minimum of 6
 
-
+NOISE = 0.5
+ALPHA = 0
+N_ATOMS = 120
 
 ## -------------- Elementary operation benchmark : apriori vs fpgrowth vs dict learning
 
 
 
 ## Number of sets
-
-NOISE = 0.5
-
 df_bench = pd.DataFrame(columns = ['set_nb','algo','time'])   # Prepare df
-
-ALPHA = 0
 
 for _ in REPEATS:
         
@@ -60,6 +59,8 @@ for _ in REPEATS:
         names = [str(i) for i in range(X.shape[1])]
         transactions = matrix_to_list_of_transactions(X, names)
         X_as_dataframe = pd.DataFrame(X)
+
+        X_noiseless = test_data_for_modl(nflags = 100000, number_of_sets = size, noise = 0)
 
         # Apriori
         # Cap it to the max number that is not unreasonable
@@ -73,18 +74,12 @@ for _ in REPEATS:
             df_bench = df_bench.append({'set_nb':size, 'algo':'apriori_pure_python', 'time': stop_time-start_time}, ignore_index = True)   
 
 
-        # # Apriori
+        # Apriori
         # start_time = time.time()
         # result = apriori(X_as_dataframe, min_support=1/100)
         # stop_time = time.time()
-
         # df_bench = df_bench.append({'set_nb':size, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)  
-
-        """
-        MIGHT EAT TOO MUCH RAM WITH 100K FLAGS !!
-        RE-ENABLE LATER
-        """
-
+        # NOTE: This implementation eats too much ram with 100K flags.
 
         # FP-Growth
         start_time = time.time()
@@ -96,32 +91,34 @@ for _ in REPEATS:
         
         # Dict learning
         start_time = time.time()
-        U_df, V_df, error = learn_dictionary_and_encode(X, n_atoms = 120, alpha = ALPHA, n_jobs = 1)
+        U_df, V_df, error = learn_dictionary_and_encode(X, n_atoms = N_ATOMS, alpha = ALPHA, n_jobs = 1)
         stop_time = time.time()
-        
 
         df_bench = df_bench.append({'set_nb':size, 'algo':'DL', 'time': stop_time - start_time}, ignore_index = True)   
 
+
+        # Dict learning - noiseless data
+        start_time = time.time()
+        U_df, V_df, error = learn_dictionary_and_encode(X_noiseless, n_atoms = N_ATOMS, alpha = ALPHA, n_jobs = 1)
+        stop_time = time.time()
+
+        df_bench = df_bench.append({'set_nb':size, 'algo':'DL_noiselsss_data', 'time': stop_time - start_time}, ignore_index = True)  
 
 
 
 df_bench['set_nb'] = df_bench['set_nb'].astype(int)
 p = (ggplot(df_bench) + aes('set_nb', 'time', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous())
+ + geom_point() + geom_smooth() + scale_x_continuous()
+ + xlab("Number of sets") + ylab("Time (seconds)"))
 p.save(filename = OUTPUT_ROOT + "fig4")
 
 p = (ggplot(df_bench) + aes('set_nb', 'time', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous() + scale_y_log10())
+ + geom_point() + geom_smooth() + scale_x_continuous() + scale_y_log10()
+ + xlab("Number of sets") + ylab("Time (seconds)"))
 p.save(filename = OUTPUT_ROOT + "fig4_log10")
 
 
-
-
-
-
-
-
-# Normalized time to minimum set
+# Normalized time to minimum number of sets
 min_nb_sets = min(SETS_NB)
 minimum_time = df_bench[df_bench['set_nb'] == min_nb_sets][['algo','time']]
 df_bench['time_relative'] = df_bench['time'] # Placeholder
@@ -131,8 +128,6 @@ for index, row in df_bench.iterrows():
     df_bench.at[index,'time_relative'] = row['time']/my_minimum_time
 
 p = (ggplot(df_bench) + aes('set_nb', 'time_relative', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous())
+ + geom_point() + geom_smooth() + scale_x_continuous()
+ + xlab("Number of sets") + ylab("Time (relative)"))
 p.save(filename = OUTPUT_ROOT + "fig4_relative")
-
-
-

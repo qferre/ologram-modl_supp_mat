@@ -6,7 +6,7 @@ import numpy as np
 np.random.seed(42)
 
 import pandas as pd
-from plotnine import ggplot, aes, geom_point, geom_line, geom_smooth, scale_x_continuous, scale_y_log10
+from plotnine import ggplot, aes, geom_point, geom_line, geom_smooth, scale_x_continuous, scale_y_log10, xlab, ylab
 
 import time
 
@@ -14,7 +14,6 @@ from pygtftk.stats.intersect.modl.dict_learning import Modl, test_data_for_modl
 from pygtftk.stats.intersect.modl.apriori import Apriori, matrix_to_list_of_transactions, apriori_results_to_matrix
 from pygtftk.stats.intersect.modl.subroutines import learn_dictionary_and_encode
 from pygtftk import utils
-
 
 from mlxtend.frequent_patterns import fpgrowth, apriori
 
@@ -25,37 +24,28 @@ matplotlib.use("Agg")
 OUTPUT_ROOT = "output/benchmark/scaling/" # Hardcoded for now. It was necessary to launch this script in shell and not via snakemake.script to allow proper redirection of the log
 
 
-
 ## ---------------------------- Parameters ---------------------------------- ##
-
 utils.VERBOSITY = 0 # We don't want to record debug messages for these tests
-
 REPEATS = range(5) # Repeat all operations N times to get the average
 
-
-
 # Elementary operation (DL)
-SCALING_FACTORS =  [1,2,5,10,25,30,40,50,75,100,150,200,300,500]    # Number of words, and 1/min_support for the comparisons
+# Number of words, and 1/min_support for the comparisons
+SCALING_FACTORS =  [1,2,5,10,25,30,40,50,75,100,150,200,300,500]    
 
-
-
+NOISE = 0.5
+ALPHA = 0.5
 
 ## -------------- Elementary operation benchmark : apriori vs fpgrowth vs dict learning
 
 ## Support and number of queried words
 df_bench = pd.DataFrame(columns = ['scaling_factor','algo','time'])   # Prepare df
 
-NOISE = 0.5
-ALPHA = 0.5
-
-
 for _ in REPEATS:
-
 
     for k in SCALING_FACTORS:
 
-        # NOTE Scaling factor of k means :
-        # - apriori and fpgrowth will have min support of 1/k
+        # NOTE Scaling factor of k means:
+        # - Apriori and FP-growth will have min support of 1/k
         # - Dictionary learning will learn k atoms
         current_min_support = 1/k
 
@@ -83,7 +73,6 @@ for _ in REPEATS:
 
             df_bench = df_bench.append({'scaling_factor':k, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)  
 
-
         # FP-Growth
         start_time = time.time()
         result = fpgrowth(X_as_dataframe, min_support=current_min_support)
@@ -101,23 +90,14 @@ for _ in REPEATS:
 
 df_bench['scaling_factor'] = df_bench['scaling_factor'].astype(int)
 p = (ggplot(df_bench) + aes('scaling_factor', 'time', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous())
+ + geom_point() + geom_smooth() + scale_x_continuous()
+ + xlab("Scaling factor (k)") + ylab("Time (seconds)"))
 p.save(filename = OUTPUT_ROOT + "fig3")
 
 p = (ggplot(df_bench) + aes('scaling_factor', 'time', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous() + scale_y_log10())
+ + geom_point() + geom_smooth() + scale_x_continuous() + scale_y_log10()
+ + xlab("Scaling factor (k)") + ylab("Time (seconds)"))
 p.save(filename = OUTPUT_ROOT + "fig3_log10")
-
-
-
-
-
-
-
-
-
-
-
 
 
 # Normalized time to scaling factor of 1
@@ -129,7 +109,6 @@ for index, row in df_bench.iterrows():
     df_bench.at[index,'time_relative'] = row['time']/my_minimum_time
 
 p = (ggplot(df_bench) + aes('scaling_factor', 'time_relative', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous())
+ + geom_point() + geom_smooth() + scale_x_continuous()
+ + xlab("Scaling factor (k)") + ylab("Time (relative)"))
 p.save(filename = OUTPUT_ROOT + "fig3_relative")
-
-

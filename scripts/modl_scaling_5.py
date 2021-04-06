@@ -6,7 +6,7 @@ import numpy as np
 np.random.seed(42)
 
 import pandas as pd
-from plotnine import ggplot, aes, geom_point, geom_line, geom_smooth, scale_x_continuous, scale_y_log10
+from plotnine import ggplot, aes, geom_point, geom_line, geom_smooth, scale_x_continuous, scale_y_log10, xlab, ylab
 
 import time
 
@@ -14,7 +14,6 @@ from pygtftk.stats.intersect.modl.dict_learning import Modl, test_data_for_modl
 from pygtftk.stats.intersect.modl.apriori import Apriori, matrix_to_list_of_transactions, apriori_results_to_matrix
 from pygtftk.stats.intersect.modl.subroutines import learn_dictionary_and_encode
 from pygtftk import utils
-
 
 from mlxtend.frequent_patterns import fpgrowth, apriori
 
@@ -24,34 +23,25 @@ matplotlib.use("Agg")
 
 OUTPUT_ROOT = "output/benchmark/scaling/" # Hardcoded for now. It was necessary to launch this script in shell and not via snakemake.script to allow proper redirection of the log
 
-
-
 ## ---------------------------- Parameters ---------------------------------- ##
-
 utils.VERBOSITY = 0 # We don't want to record debug messages for these tests
-
 REPEATS = range(5) # Repeat all operations N times to get the average
-
 
 
 # Elementary operation (DL)
 LINES_NB = [1,2,5,8,10,15,20,25,40,50]  # Numbers of lines (in thousands)
 
+NOISE = 0.5
 
+ALPHA = 0
 
 
 ## -------------- Elementary operation benchmark : apriori vs fpgrowth vs dict learning
 
 ## Number of lines
-
-NOISE = 0.5
-
 df_bench = pd.DataFrame(columns = ['lines','algo','time'])   # Prepare df
 
-ALPHA = 0
-
 for _ in REPEATS:
-
 
     for lines in LINES_NB:
 
@@ -72,19 +62,12 @@ for _ in REPEATS:
         df_bench = df_bench.append({'lines':lines, 'algo':'apriori_pure_python', 'time': stop_time-start_time}, ignore_index = True)   
 
 
-        # # Apriori
+        # Apriori
         # start_time = time.time()
         # result = apriori(X_as_dataframe, min_support=1/100)
         # stop_time = time.time()
-
-        # df_bench = df_bench.append({'lines':lines, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)  
-
-        """
-        MIGHT EAT TOO MUCH RAM WITH 100K FLAGS !!
-        RE-ENABLE LATER
-        """
-
-
+        # df_bench = df_bench.append({'set_nb':size, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)  
+        # NOTE: This implementation eats too much ram with 100K flags.
 
         # FP-Growth
         start_time = time.time()
@@ -98,24 +81,20 @@ for _ in REPEATS:
         start_time = time.time()
         U_df, V_df, error = learn_dictionary_and_encode(X, n_atoms = 120, alpha = ALPHA, n_jobs = 1)
         stop_time = time.time()
-        
 
         df_bench = df_bench.append({'lines':lines, 'algo':'DL', 'time': stop_time - start_time}, ignore_index = True)   
 
+
 df_bench['lines'] = df_bench['lines'].astype(int)
 p = (ggplot(df_bench) + aes('lines', 'time', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous())
+ + geom_point() + geom_smooth() + scale_x_continuous()
+ + xlab("Number of lines") + ylab("Time (seconds)"))
 p.save(filename = OUTPUT_ROOT + "fig5")
 
 p = (ggplot(df_bench) + aes('lines', 'time', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous() + scale_y_log10())
+ + geom_point() + geom_smooth() + scale_x_continuous() + scale_y_log10()
+ + xlab("Number of lines") + ylab("Time (seconds)"))
 p.save(filename = OUTPUT_ROOT + "fig5_log10")
-
-
-
-
-
-
 
 
 # Normalized time to minimum line number
@@ -128,11 +107,6 @@ for index, row in df_bench.iterrows():
     df_bench.at[index,'time_relative'] = row['time']/my_minimum_time
 
 p = (ggplot(df_bench) + aes('lines', 'time_relative', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous())
+ + geom_point() + geom_smooth() + scale_x_continuous()
+ + xlab("Number of lines") + ylab("Time (relative)"))
 p.save(filename = OUTPUT_ROOT + "fig5_relative")
-
-
-
-
-
-
