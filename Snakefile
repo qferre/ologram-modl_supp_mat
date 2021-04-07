@@ -38,7 +38,8 @@ rule final:
         # Murine promoters
         "output/murine_result/murine_fig.png",
         # Comparison with GINOM
-        "output/ologram_result_ginom/00_ologram_stats.tsv",
+        expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
+                testing_set = ['ginom','ginom_filtered']),
         ## MODL benchmarks
         "output/benchmark/comparison/done",
         expand("output/benchmark/scaling/fig{n}.png", n = [1,2]),

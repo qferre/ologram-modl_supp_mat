@@ -1,5 +1,5 @@
 """
-Adapted from the `ologram_modl_treeify` source code
+Adapted from the `ologram_modl_treeify` source code.
 """
 import numpy as np
 import pandas as pd
@@ -10,14 +10,17 @@ import math
 from collections import Counter
 
 ROOT_PATH = "./output/ologram_result_scatacseq_pbmc/"
+DATA_ROOT_PATH = "./output/sc_atac_seq_pbmc_data"
 
 # Hardcode the superclusters
-SUPERCLUSTERS = {'CD14+_Monocytes':'cd14',
-                    'CD4_Naive':'cd48',
-                    "CD8_Naive":"cd48",
-                    "Quer":"NA",
-                    "...":"NA",
-                    'pre-B_cell':'preB'}
+SUPERCLUSTERS = {
+    "CD14+_Monocytes":  "cd14",
+    "CD4_Naive":        "cd48",
+    "CD8_Naive":        "cd48",
+    "Quer":             "NA",
+    "...":              "NA",
+    "pre-B_cell":       "preB"
+}
 
 # ---------------------------------------------------------------------------- #
 
@@ -78,7 +81,7 @@ def entropy(data):
 # Read the translation table as a dictionary and convert
 # If df_map is a pandas dataframe with two columns, 'name' and 'category'
 
-df_map = pd.read_csv(ROOT_PATH + "cell_to_class.tsv", sep='\t', header=0, index_col=None)
+df_map = pd.read_csv(DATA_ROOT_PATH + "cell_to_class.tsv", sep='\t', header=0, index_col=None)
 df_map.set_index('id', inplace=True)
 df_map.transpose()
 dict_translate = df_map['class'].to_dict()
@@ -121,4 +124,4 @@ for length in all_lengths:
 
         p.save(filename = ROOT_PATH + "entropy_graph/entropy_length_" + str(length) + ".png")
     except:
-        print("Skipping a length causing an error")
+        print("Skipping a length which caused an error.")

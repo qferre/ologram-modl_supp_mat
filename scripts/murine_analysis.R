@@ -5,8 +5,9 @@ print(getwd())
 
 
 # Install packages
-if (!requireNamespace("UpSetR")){
-  install.packages(c("UpSetR"))
+allpkgs <- c("UpSetR", "dplyr", "reshape2", "patchwork", "latex2exp")
+for (p in allpkgs){
+  if (!requireNamespace(p)){ install.packages(c(p), repos="http://cran.us.r-project.org", dependencies = TRUE) }
 }
 
 library('UpSetR')
