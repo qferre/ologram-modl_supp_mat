@@ -37,11 +37,12 @@ REPEATS = range(5) # Repeat all operations N times to get the average
 ## Elementary operation (DL) vs other itemset miners
 
 # Number of sets (columns), minimum of 6
-SETS_NB = [6,8,10,11,12,13,14,16,18,20,24]    
+SETS_NB = [6,8,10,11,12,13,14,16,18,20,22,24,26]    
 
 # Data generation parameters
 NOISE = 0.5
-N_FLAGS = 100000
+LOW_NOISE = 0.01
+N_FLAGS = 2500
 
 # DL parameters
 ALPHA = 0
@@ -59,12 +60,13 @@ for _ in REPEATS:
     for size in SETS_NB:
 
         # Generate data
-        X = test_data_for_modl(nflags = 100000, number_of_sets = size, noise = NOISE)
+        X = test_data_for_modl(nflags = N_FLAGS, number_of_sets = size, noise = NOISE)
         names = [str(i) for i in range(X.shape[1])]
         transactions = matrix_to_list_of_transactions(X, names)
         X_as_dataframe = pd.DataFrame(X)
 
-        X_noiseless = test_data_for_modl(nflags = 100000, number_of_sets = size, noise = 0)
+        X_low_noise = test_data_for_modl(nflags = N_FLAGS, number_of_sets = size, noise = 0)
+        X_noiseless = test_data_for_modl(nflags = N_FLAGS, number_of_sets = size, noise = LOW_NOISE)
 
         # Apriori
         # Cap it to the max number that is not unreasonable
@@ -79,11 +81,12 @@ for _ in REPEATS:
 
 
         # Apriori
-        # start_time = time.time()
-        # result = apriori(X_as_dataframe, min_support=1/100)
-        # stop_time = time.time()
-        # df_bench = df_bench.append({'set_nb':size, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)  
-        # NOTE: This implementation eats too much ram with 100K flags.
+        # NOTE: this implementation hash high RAM cost for large data, be careful
+        start_time = time.time()
+        result = apriori(X_as_dataframe, min_support=1/100)
+        stop_time = time.time()
+        df_bench = df_bench.append({'set_nb':size, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)  
+
 
         # FP-Growth
         start_time = time.time()
@@ -135,3 +138,9 @@ p = (ggplot(df_bench) + aes('set_nb', 'time_relative', color='algo', group='algo
  + geom_point() + geom_smooth() + scale_x_continuous()
  + xlab("Number of sets") + ylab("Time (relative)"))
 p.save(filename = OUTPUT_ROOT + "fig4_relative")
+
+
+p = (ggplot(df_bench) + aes('set_nb', 'time_relative', color='algo', group='algo')
+ + geom_point() + geom_smooth() + scale_x_continuous() + scale_y_log10()
+ + xlab("Number of sets") + ylab("Time (relative)"))
+p.save(filename = OUTPUT_ROOT + "fig4_relative_log10")

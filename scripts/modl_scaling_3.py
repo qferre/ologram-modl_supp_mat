@@ -31,10 +31,12 @@ REPEATS = range(5) # Repeat all operations N times to get the average
 ## Elementary operation (DL) vs other itemset miners
 
 # Number of words, and 1/min_support for the comparisons
-SCALING_FACTORS =  [1,2,5,10,25,30,40,50,75,100,150,200,300,500]    
+SCALING_FACTORS =  [1,2,5,10,25,30,40,50,75,100,150,200,250,300,350,400,500]    
 
 # Data generation parameters
 NOISE = 0.5
+NLINES = 5000
+NSETS = 13
 
 # DL parameters
 ALPHA = 0.5
@@ -53,7 +55,7 @@ for _ in REPEATS:
         # - Dictionary learning will learn k atoms
         current_min_support = 1/k
 
-        X = test_data_for_modl(nflags = 25000, number_of_sets = 13, noise = NOISE)
+        X = test_data_for_modl(nflags = NLINES, number_of_sets = NSETS, noise = NOISE)
         names = [str(i) for i in range(X.shape[1])]
         transactions = matrix_to_list_of_transactions(X, names)
         X_as_dataframe = pd.DataFrame(X)
@@ -70,7 +72,7 @@ for _ in REPEATS:
 
         # Apriori 
         # It seems this particular apriori implementation reserves a very large amount of memory when support is very low, so cap it.
-        if current_min_support > 0.05: 
+        if current_min_support >= 0.02: 
             start_time = time.time()
             apriori(X_as_dataframe, min_support = current_min_support)
             stop_time = time.time()
@@ -116,3 +118,9 @@ p = (ggplot(df_bench) + aes('scaling_factor', 'time_relative', color='algo', gro
  + geom_point() + geom_smooth() + scale_x_continuous()
  + xlab("Scaling factor (k)") + ylab("Time (relative)"))
 p.save(filename = OUTPUT_ROOT + "fig3_relative")
+
+
+p = (ggplot(df_bench) + aes('scaling_factor', 'time_relative', color='algo', group='algo')
+ + geom_point() + geom_smooth() + scale_x_continuous() + scale_y_log10()
+ + xlab("Scaling factor (k)") + ylab("Time (relative)"))
+p.save(filename = OUTPUT_ROOT + "fig3_relative_log10")

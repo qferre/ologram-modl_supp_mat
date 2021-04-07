@@ -38,6 +38,10 @@ NOISE = 0.5
 
 # DL parameters
 ALPHA = 0
+N_ATOMS = 120
+
+# Other algo parameters
+MIN_SUPPORT = 1/100
 
 
 ## -------------- Elementary operation benchmark : apriori vs fpgrowth vs dict learning
@@ -49,16 +53,18 @@ for _ in REPEATS:
 
     for lines in LINES_NB:
 
+        true_line_nb = lines * 1000
+
         # Generate data
         # Scaling factor is in the thouands
-        X = test_data_for_modl(nflags = lines*1000, number_of_sets = 15, noise = NOISE)
+        X = test_data_for_modl(nflags = true_line_nb, number_of_sets = 15, noise = NOISE)
         names = [str(i) for i in range(X.shape[1])]
         transactions = matrix_to_list_of_transactions(X, names)
         X_as_dataframe = pd.DataFrame(X)
 
         # Apriori
         start_time = time.time()
-        myminer = Apriori(min_support = 1/100)
+        myminer = Apriori(min_support = MIN_SUPPORT)
         myminer.run_apriori(transactions)
         results = myminer.produce_results()
         stop_time = time.time()
@@ -67,15 +73,17 @@ for _ in REPEATS:
 
 
         # Apriori
-        # start_time = time.time()
-        # result = apriori(X_as_dataframe, min_support=1/100)
-        # stop_time = time.time()
-        # df_bench = df_bench.append({'set_nb':size, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)  
-        # NOTE: This implementation eats too much ram with 100K flags.
+        # NOTE: This implementation eats too much RAM, careful with the scaling
+        if true_line_nb <= 20000:
+            start_time = time.time()
+            result = apriori(X_as_dataframe, min_support = MIN_SUPPORT)
+            stop_time = time.time()
+            df_bench = df_bench.append({'lines':lines, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)  
+        
 
         # FP-Growth
         start_time = time.time()
-        result = fpgrowth(X_as_dataframe, min_support=1/100)
+        result = fpgrowth(X_as_dataframe, min_support = MIN_SUPPORT)
         stop_time = time.time()
 
         df_bench = df_bench.append({'lines':lines, 'algo':'fpgrowth', 'time': stop_time-start_time}, ignore_index = True)  
@@ -83,7 +91,7 @@ for _ in REPEATS:
         
         # Dict learning
         start_time = time.time()
-        U_df, V_df, error = learn_dictionary_and_encode(X, n_atoms = 120, alpha = ALPHA, n_jobs = 1)
+        U_df, V_df, error = learn_dictionary_and_encode(X, n_atoms = N_ATOMS, alpha = ALPHA, n_jobs = 1)
         stop_time = time.time()
 
         df_bench = df_bench.append({'lines':lines, 'algo':'DL', 'time': stop_time - start_time}, ignore_index = True)   
