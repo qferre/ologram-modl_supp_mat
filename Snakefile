@@ -696,17 +696,25 @@ rule run_ologram_sc_atac_seq:
 
 
 
+rule ologram_sc_atac_seq_merge_runs:
+    """
+    Merge the various runs using ologram_merge_runs to recalculate the statistics.
+    """
+    input: expand("output/ologram_result_scatacseq_pbmc/run_{runid}/00_ologram_stats.tsv", runid = range(N_RUNS_TO_MERGE))
+    output: "output/ologram_result_scatacseq_pbmc/merged_batches_result.tsv"
+    shell: """
+    gtftk ologram_merge_runs --inputfiles `ls output/ologram_result_scatacseq_pbmc/*/*.tsv` -o {output} -V 3
+    """
+
+
 rule ologram_sc_atac_seq_analysis:
     """
     Python script to draw the figure and perform the analysis for sc-ATAC-seq data.
     """
-    input: expand("output/ologram_result_scatacseq_pbmc/run_{runid}/00_ologram_stats.tsv", runid = range(N_RUNS_TO_MERGE))
+    input: "output/ologram_result_scatacseq_pbmc/merged_batches_result.tsv"
     output: "output/ologram_result_scatacseq_pbmc/done"
     shell: """
     mkdir -p output/ologram_result_scatacseq_pbmc/entropy_graph/
-
-    # Merge those runs
-    gtftk ologram_merge_runs --inputfiles `ls output/ologram_result_scatacseq_pbmc/*/*.tsv` -o output/ologram_result_scatacseq_pbmc/merged_batches_result.tsv -V 3
 
     # Run the Python script to produce the figures
     python scripts/combi_entropy_analysis.py

@@ -9,18 +9,28 @@ from functools import partial
 import math
 from collections import Counter
 
-ROOT_PATH = "./output/ologram_result_scatacseq_pbmc/"
-DATA_ROOT_PATH = "./output/sc_atac_seq_pbmc_data"
+from plotnine import ggplot, aes, labs, scale_color_gradient, geom_point, geom_abline, scale_x_log10, scale_y_log10, geom_violin, geom_boxplot, position_dodge, scale_y_log10, xlab, ylab
 
-# Hardcode the superclusters
+ROOT_PATH = "./output/ologram_result_scatacseq_pbmc/"
+DATA_ROOT_PATH = "./output/sc_atac_seq_pbmc_data/"
+
+# For manual execution
+# ROOT_PATH = "../output/ologram_result_scatacseq_pbmc/"
+# DATA_ROOT_PATH = "../output/sc_atac_seq_pbmc_data/"
+
+
+## Superclusters: how to regroup the cell types
+# For now, this is hardcoded
 SUPERCLUSTERS = {
-    "CD14+_Monocytes":  "cd14",
-    "CD4_Naive":        "cd48",
-    "CD8_Naive":        "cd48",
+    "CD14+ Monocytes":  "cd14",
+    "CD4 Naive":        "cd48",
+    "CD8 Naive":        "cd48",
     "Quer":             "NA",
     "...":              "NA",
-    "pre-B_cell":       "preB"
+    "NA":               "NA",
+    "pre-B cell":       "preB"
 }
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -32,10 +42,15 @@ df_res.loc[df_res['summed_bp_overlaps_pvalue'] == 0, 'summed_bp_overlaps_pvalue'
 df_res.loc[df_res['summed_bp_overlaps_pvalue'] == -1, 'summed_bp_overlaps_pvalue'] = np.nan
 
 # Create a Library tree with the combinations, like in the MODL algorithm itself  
-print("Creating a Library for these words. This can be very long for longer words.")  
+print("Creating a Library for these words. This can be very long for longer words.")
+print("In this particular Snakemake, it should take about 12 minutes.")
+
 L = tree.Library()
 L.build_nodes_for_words_from_ologram_result_df(df_res)
 L.assign_nodes()
+
+
+# ---------------------------------------------------------------------------- #
 
 
 # Remember the features names are in L.features_names
@@ -51,8 +66,6 @@ def work_on_this_node(node, graph):
 mygraphfunc = partial(work_on_this_node, graph=L)
 global_results = {}
 tree.apply_recursively_to_all_nodes(L.root_node, mygraphfunc, global_results)
-
-# ---------------------------------------------------------------------------- #
 
 df = pd.DataFrame(global_results.values(), columns = ["combination","fc","pval","s"])
 
@@ -78,6 +91,9 @@ def entropy(data):
     return ent
 
 
+# ---------------------------------------------------------------------------- #
+
+
 # Read the translation table as a dictionary and convert
 # If df_map is a pandas dataframe with two columns, 'name' and 'category'
 
@@ -93,8 +109,8 @@ dict_translate["..."] = "NA"
 def combination_to_combi_of_classes(combination):
     new_combination = []
     for element in combination:
-        element_head = element[0:4]
-        element_to_add = SUPERCLUSTERS[element_head]
+        current_key = dict_translate[element]
+        element_to_add = SUPERCLUSTERS[current_key]
         if element_to_add != "NA": 
             new_combination += [element_to_add]
     return new_combination
@@ -109,19 +125,33 @@ df['entropy'] = df['entropy'].apply(lambda x: round(x,2)).astype(pdtypes.Categor
 
 
 # Using only combis of each individual length
-from plotnine import ggplot, aes, labs, scale_color_gradient, geom_point, geom_abline, scale_x_log10, scale_y_log10, geom_violin, geom_boxplot, position_dodge, scale_y_log10
     
 all_lengths = sorted(set(df['combi_length']))
+
+# No point in going beyond, roughly, 12
+all_lengths = [l for l in all_lengths if l <= 12]
 
 for length in all_lengths:
 
     df_filtered = df.loc[df['combi_length'] == length,:]
 
     try:
-        p = (ggplot(data=df_filtered, mapping = aes(x='entropy', y='fc')) #+ geom_point())
+        p = (ggplot(data=df_filtered, mapping = aes(x='entropy', y='fc'))
                 + geom_violin(position = position_dodge(1), width = 1)
-                + geom_boxplot(position = position_dodge(1), width = 0.25))
+                + geom_boxplot(position = position_dodge(1), width = 0.25)
+                + xlab("Entropy") + ylab("Fold change (log2)"))
 
-        p.save(filename = ROOT_PATH + "entropy_graph/entropy_length_" + str(length) + ".png")
+        p.save(filename = ROOT_PATH + "entropy_graph/entropy_length_" + str(length) + "_fc.png")
+
+
+
+        p = (ggplot(data=df_filtered, mapping = aes(x='entropy', y='s'))
+                + geom_violin(position = position_dodge(1), width = 1)
+                + geom_boxplot(position = position_dodge(1), width = 0.25)
+                + xlab("Entropy") + ylab("True total overlapping bp."))
+
+        p.save(filename = ROOT_PATH + "entropy_graph/entropy_length_" + str(length) + "_s.png")
+
+
     except:
-        print("Skipping a length which caused an error.")
+        print("Skipping length",length,"which caused an error.")

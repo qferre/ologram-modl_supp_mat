@@ -42,7 +42,7 @@ SETS_NB = [6,8,10,11,12,13,14,16,18,20,22,24,26]
 # Data generation parameters
 NOISE = 0.5
 LOW_NOISE = 0.01
-N_FLAGS = 2500
+N_FLAGS = 5000
 
 # DL parameters
 ALPHA = 0
