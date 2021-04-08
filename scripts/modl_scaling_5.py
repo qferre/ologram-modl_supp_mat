@@ -31,7 +31,8 @@ REPEATS = range(5) # Repeat all operations N times to get the average
 ## Elementary operation (DL) vs other itemset miners
 
 # Number of lines (in thousands)
-LINES_NB = [1,2,5,8,10,15,20,25,40,50]  
+LINES_NB = [1,2,5,8,10,15,20,25,40,50]
+NB_SETS = 15  
 
 # Data generation parameters
 NOISE = 0.5
@@ -57,7 +58,7 @@ for _ in REPEATS:
 
         # Generate data
         # Scaling factor is in the thouands
-        X = test_data_for_modl(nflags = true_line_nb, number_of_sets = 15, noise = NOISE)
+        X = test_data_for_modl(nflags = true_line_nb, number_of_sets = NB_SETS, noise = NOISE)
         names = [str(i) for i in range(X.shape[1])]
         transactions = matrix_to_list_of_transactions(X, names)
         X_as_dataframe = pd.DataFrame(X)
@@ -73,7 +74,7 @@ for _ in REPEATS:
 
 
         # Apriori
-        # NOTE: This implementation eats too much RAM, careful with the scaling
+        # NOTE: this implementation has high RAM cost for large data or low min_support, be careful with scaling
         if true_line_nb <= 20000:
             start_time = time.time()
             result = apriori(X_as_dataframe, min_support = MIN_SUPPORT)

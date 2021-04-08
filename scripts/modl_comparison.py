@@ -15,6 +15,10 @@ from pygtftk.stats.intersect.modl.apriori import Apriori, matrix_to_list_of_tran
 from pygtftk.stats.intersect.modl.subroutines import learn_dictionary_and_encode
 from pygtftk import utils
 
+## ---------------------------- Parameters ---------------------------------- ##
+utils.VERBOSITY = 3 # Force debug messages to appear
+N_THREADS = 4
+
 # Hardcoded for now. It was necessary to launch this script in 
 # shell and not via snakemake.script to allow proper redirection of the log
 OUTPUT_ROOT = "output/benchmark/comparison" 
@@ -24,13 +28,27 @@ import matplotlib
 matplotlib.use("Agg")
 
 
+# Data parameters
+NB_SETS = 6
+NFLAGS = 10000
+NOISE = 0.12
+NOISE_HIGH = 0.2
+CORR_GROUPS = [(0,1),(0,1,2,3),(4,5)]
+
+# MODL parameters
+N_QUERIED_ATOMS = 3
+
+# Other algorithms' parameters
+MIN_SUPPORT = 1E-10 # This value is an epsilon for 0. Hence, return all itemsets ordered by support
+
+
+
 ## --------------------------- Found combinations --------------------------- ##
 
 # Generate data with the AB, ABCD, EF combinations, adding uniform noise
-NB_SETS = 6
 names = [str(i) for i in range(NB_SETS)]
-x = test_data_for_modl(nflags = 10000, number_of_sets = NB_SETS,
-    noise = 0.12, cor_groups = [(0,1),(0,1,2,3),(4,5)])
+x = test_data_for_modl(nflags = NFLAGS, number_of_sets = NB_SETS,
+    noise = NOISE, cor_groups = CORR_GROUPS)
 
 # Convert to list of transactions
 transactions = matrix_to_list_of_transactions(x, names) 
@@ -38,29 +56,32 @@ transactions = matrix_to_list_of_transactions(x, names)
 
 
 
-# Run MODL
-utils.VERBOSITY = 3 # Force debug messages to appear
+## Run MODL
 
 combi_miner = Modl(x, 
-    multiple_overlap_target_combi_size = -1,            # Optional : Limit the size of the combinations
-    multiple_overlap_max_number_of_combinations = 3,    # How many words to find ?
-    nb_threads = 8,                                     # Full multithreading
-    smother = True,                                     # Reduce each row's abundance to its square root. Helps find rarer combinations but magnifies the noise.
-    step_1_factor_allowance = 2,                        # Optional : How many words to ask for in each step 1 rebuilding
-    normalize_words = True,                             # Normalize word sum of square in step 2
-    step_2_alpha = None)                                # Override the sparsity control in step 2
+    multiple_overlap_target_combi_size = -1,                          # Optional: limit the size of the combinations
+    multiple_overlap_max_number_of_combinations = N_QUERIED_ATOMS,    # How many words to find ?
+    nb_threads = N_THREADS,                                           # Full multithreading
+    smother = True,                                                   # Reduce each row's abundance to its square root. Helps find rarer combinations but magnifies the noise.
+    step_1_factor_allowance = 2,                                      # Optional: how many words to ask for in each step 1 rebuilding
+    normalize_words = True,                                           # Normalize word sum of square in step 2
+    step_2_alpha = None)                                              # Optional: override the sparsity control in step 2
 modl_interesting_combis = combi_miner.find_interesting_combinations()
 
 
 # Run MODL without smothering
-x = test_data_for_modl(noise = 0.2)
-combi_miner = Modl(x, multiple_overlap_max_number_of_combinations=3, smother = False)
+x = test_data_for_modl(noise = NOISE_HIGH)
+combi_miner = Modl(x, 
+    multiple_overlap_max_number_of_combinations=N_QUERIED_ATOMS, 
+    smother = False)
 modl_interesting_combis_no_smother = combi_miner.find_interesting_combinations()
 
 
 # Run MODL without word normalization
-x = test_data_for_modl(noise = 0.12)
-combi_miner = Modl(x, multiple_overlap_max_number_of_combinations=3, normalize_words = False)
+x = test_data_for_modl(noise = NOISE)
+combi_miner = Modl(x, 
+    multiple_overlap_max_number_of_combinations=N_QUERIED_ATOMS, 
+    normalize_words = False)
 modl_interesting_combis_not_normalized = combi_miner.find_interesting_combinations()
 
 
@@ -72,7 +93,6 @@ print("-------------------------------")
 
 
 ## Run Apriori and FP-growth
-MIN_SUPPORT = 1E-10 # Epsilon for 0. Return all itemsets, ordered by support
 
 # Apriori
 myminer = Apriori(min_support = MIN_SUPPORT)

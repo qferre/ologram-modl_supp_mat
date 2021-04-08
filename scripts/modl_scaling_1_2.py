@@ -24,12 +24,22 @@ OUTPUT_ROOT = "output/benchmark/scaling/" # Hardcoded for now. It was necessary 
 
 
 ## ---------------------------- Parameters ---------------------------------- ##
-utils.VERBOSITY = 0 # We don't want to record debug messages for these tests
+utils.VERBOSITY = 0 # We don't want to record DEBUG messages for these tests
 REPEATS = range(5) # Repeat all operations N times to get the average
 
-# MODL
+N_THREADS = 4
+
+## MODL
 SIZES = [6,9,12,18,24,30,40,50]  # Numbers of sets (columns)
-STEPS = [3,5,8,10,12,15,18,20,22,25,30] # Numbers of queried words
+STEPS = [3,5,8,10,12,15,18,20,22,25,30] # Numbers of queried atoms
+
+# When varying only one parameter, which is the default for the others ?
+DEFAULT_QUERIED_ATOMS = 8
+DEFAULT_N_SETS = 8
+
+# Data parameters
+NFLAGS = 10000
+NOISE = 0.1     # Previously 0.5
 
 
 ## ---------------------------- Time benchmarks ----------------------------- ##
@@ -40,10 +50,10 @@ df_bench = pd.DataFrame(columns = ['nb_sets','time'])   # Prepare dataframe
 for _ in REPEATS:
 
     for size in SIZES:
-        X = test_data_for_modl(nflags = 20000, number_of_sets = size, noise = 0.5)
+        X = test_data_for_modl(nflags = NFLAGS, number_of_sets = size, noise = NOISE)
 
         start_time = time.time()
-        combi_miner = Modl(X, multiple_overlap_max_number_of_combinations = 8, nb_threads = 8)
+        combi_miner = Modl(X, multiple_overlap_max_number_of_combinations = DEFAULT_QUERIED_ATOMS, nb_threads = N_THREADS)
         modl_interesting_combis = combi_miner.find_interesting_combinations()
         stop_time = time.time()
 
@@ -59,13 +69,13 @@ p.save(filename = OUTPUT_ROOT + "fig1")
 ## Number of queried words
 df_bench = pd.DataFrame(columns = ['step','time'])
 
-X = test_data_for_modl(nflags = 20000, number_of_sets = 8, noise = 0.5)
+X = test_data_for_modl(nflags = NFLAGS, number_of_sets = DEFAULT_N_SETS, noise = NOISE)
 
 for _ in REPEATS:
     for step in STEPS:
 
         start_time = time.time()
-        combi_miner = Modl(X, multiple_overlap_max_number_of_combinations = step, nb_threads = 8)
+        combi_miner = Modl(X, multiple_overlap_max_number_of_combinations = step, nb_threads = N_THREADS)
         modl_interesting_combis = combi_miner.find_interesting_combinations()
         stop_time = time.time()
 

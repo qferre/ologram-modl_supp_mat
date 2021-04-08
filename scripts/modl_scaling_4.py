@@ -2,10 +2,6 @@
 Run a scaling benchmark on MODL, dictionary learning and Apriori using artificial data matrices.
 """
 
-#ADD `+ xlab("label") + ylab("Label")` everywhere !!!!! ALL FIGURES !
-
-
-
 import numpy as np
 np.random.seed(42)
 
@@ -37,7 +33,7 @@ REPEATS = range(5) # Repeat all operations N times to get the average
 ## Elementary operation (DL) vs other itemset miners
 
 # Number of sets (columns), minimum of 6
-SETS_NB = [6,8,10,11,12,13,14,16,18,20,22,24,26]    
+SETS_NB = [6,7,8,9,10,11,12,13,14,16,18,20,22,24,26]    
 
 # Data generation parameters
 NOISE = 0.5
@@ -47,6 +43,9 @@ N_FLAGS = 5000
 # DL parameters
 ALPHA = 0
 N_ATOMS = 120
+
+# Other algorithms' parameters
+MIN_SUPPORT = 1/100 
 
 ## -------------- Elementary operation benchmark : apriori vs fpgrowth vs dict learning
 
@@ -70,9 +69,9 @@ for _ in REPEATS:
 
         # Apriori
         # Cap it to the max number that is not unreasonable
-        if size<15:
+        if size <= 15:
             start_time = time.time()
-            myminer = Apriori(min_support = 1/100)
+            myminer = Apriori(min_support = MIN_SUPPORT)
             myminer.run_apriori(transactions)
             results = myminer.produce_results()
             stop_time = time.time()
@@ -81,16 +80,17 @@ for _ in REPEATS:
 
 
         # Apriori
-        # NOTE: this implementation hash high RAM cost for large data, be careful
-        start_time = time.time()
-        result = apriori(X_as_dataframe, min_support=1/100)
-        stop_time = time.time()
-        df_bench = df_bench.append({'set_nb':size, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)  
+        # NOTE: this implementation has high RAM cost for large data or low min_support, be careful
+        if size <= 15:
+            start_time = time.time()
+            result = apriori(X_as_dataframe, min_support = MIN_SUPPORT)
+            stop_time = time.time()
+            df_bench = df_bench.append({'set_nb':size, 'algo':'apriori', 'time': stop_time-start_time}, ignore_index = True)  
 
 
         # FP-Growth
         start_time = time.time()
-        result = fpgrowth(X_as_dataframe, min_support=1/100)
+        result = fpgrowth(X_as_dataframe, min_support = MIN_SUPPORT)
         stop_time = time.time()
 
         df_bench = df_bench.append({'set_nb':size, 'algo':'fpgrowth', 'time': stop_time-start_time}, ignore_index = True)  
@@ -104,12 +104,20 @@ for _ in REPEATS:
         df_bench = df_bench.append({'set_nb':size, 'algo':'DL', 'time': stop_time - start_time}, ignore_index = True)   
 
 
+        # Dict learning - low noise data
+        start_time = time.time()
+        U_df, V_df, error = learn_dictionary_and_encode(X_low_noise, n_atoms = N_ATOMS, alpha = ALPHA, n_jobs = 1)
+        stop_time = time.time()
+
+        df_bench = df_bench.append({'set_nb':size, 'algo':'DL_low_noise_data', 'time': stop_time - start_time}, ignore_index = True)  
+
+
         # Dict learning - noiseless data
         start_time = time.time()
         U_df, V_df, error = learn_dictionary_and_encode(X_noiseless, n_atoms = N_ATOMS, alpha = ALPHA, n_jobs = 1)
         stop_time = time.time()
 
-        df_bench = df_bench.append({'set_nb':size, 'algo':'DL_noiselsss_data', 'time': stop_time - start_time}, ignore_index = True)  
+        df_bench = df_bench.append({'set_nb':size, 'algo':'DL_noiseless_data', 'time': stop_time - start_time}, ignore_index = True)  
 
 
 
