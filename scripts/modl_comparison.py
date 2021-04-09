@@ -19,9 +19,15 @@ from pygtftk import utils
 utils.VERBOSITY = 3 # Force debug messages to appear
 N_THREADS = 4
 
+## Paths
 # Hardcoded for now. It was necessary to launch this script in 
 # shell and not via snakemake.script to allow proper redirection of the log
-OUTPUT_ROOT = "output/benchmark/comparison" 
+OUTPUT_ROOT = "output/benchmark/comparison/" # Output path
+EXT_PATH = "ext/"   # Path to external tools
+
+# # For manual launch
+# OUTPUT_ROOT = "../output/benchmark/comparison/" # Output path
+# EXT_PATH = "../ext/"   # Path to external tools
 
 # Debug : plots are not shown, only printed, so use Agg backend for matplotlib
 import matplotlib
@@ -119,33 +125,33 @@ fpgrowth(x_as_dataframe, min_support=MIN_SUPPORT)
 # bedpaths = intersection_matrix_to_bedfiles(x, output_root)
 
 # # Also print it to a tsv, and to a list of transactions
-# np.savetxt(OUTPUT_ROOT+'/artifmat.tsv', delimiter='\t')
+# np.savetxt(OUTPUT_ROOT+'artifmat.tsv', delimiter='\t')
 
 # def format_list_brackets(alist): return '{'+','.join(alist)+'}'
-# with open(OUTPUT_ROOT+'/artiftransact_brackets.tsv', 'w+') as f:
+# with open(OUTPUT_ROOT+'artiftransact_brackets.tsv', 'w+') as f:
 #     for item in transactions:
 #         f.write(format_list_brackets(item)+'\n')
 
 
 # And in the specific SPMF format
-with open(OUTPUT_ROOT+'/artiftransact.txt', 'w+') as f:
+with open(OUTPUT_ROOT+'artiftransact.txt', 'w+') as f:
     for item in transactions: f.write(' '.join(item)+'\n')
 
 
 
-## --- Manual itemsets miners
-# Present in the /ext directory
-
+## ---------- Manual launch of other itemset miner(s)
 
 # Run LCM
-command_line = ["java -jar","./ext/spmf.jar", # Java SPMF toolset
-    "run",
-    "LCM",                              # Algorithm
-    OUTPUT_ROOT+"/artiftransact.txt",   # Query file
-    OUTPUT_ROOT+"/output_lcm.txt",      # Output
-    str(round(MIN_SUPPORT*100))+"%"     # Min support (parameter)
+command_line = ["java", "-jar", EXT_PATH + "spmf.jar", # Java SPMF toolset
+    "run", "LCM",                        # Run this algorithm
+    OUTPUT_ROOT + "artiftransact.txt",   # Query file
+    OUTPUT_ROOT + "output_lcm.txt",      # Output
+    str(round(MIN_SUPPORT*100))+"%"      # Min support (parameter)
     ] 
+
 
 # NOTE Remember that in subprocess.run, the command line must be a list of 
 # arguments and not a string of the command
-stdout_captured = subprocess.run(command_line, stdout=subprocess.PIPE, universal_newlines=True).stdout
+stdout_captured = subprocess.run(command_line, 
+    stdout=subprocess.PIPE, universal_newlines=True).stdout
+
