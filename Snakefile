@@ -36,7 +36,7 @@ rule final:
         # sc-ATAC-Seq and combination entropy
         "output/ologram_result_scatacseq_pbmc/done", 
         # Murine promoters
-        "output/murine_result/murine_fig.png",
+        "output/murine_result/murine_fig.png", "output/murine_result_restricted/murine_fig.png",
         # Comparison with GINOM
         expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
                 testing_set = ['ginom','ginom_filtered']),
@@ -45,11 +45,11 @@ rule final:
         expand("output/benchmark/scaling/fig{n}.png", n = [1,2]),
         # Elementary benchmarks
         expand("output/benchmark/scaling/fig{n}.png", n = [3,4,5])
-    shell: """
-    # Produce a summary graph
-    snakemake --forceall --dag | dot -Tsvg > output/dag.svg
-    snakemake --forceall --rulegraph | dot -Tsvg > output/rulegraph.svg
-    """
+    # shell: """
+    # # Produce a summary graph
+    # snakemake --forceall --dag | dot -Tsvg > output/dag.svg
+    # snakemake --forceall --rulegraph | dot -Tsvg > output/rulegraph.svg
+    # """
 
 # ---------------------------------------------------------------------------- #
 #                        Data retrieval and preparation                        #
@@ -523,10 +523,7 @@ rule run_ologram_murine:
     """
     input: 
         incl = "output/murine_data/murine_incl.bed"
-    output:
-        "output/murine_result/SRX1815531-Ctcf/00_ologram_stats.tsv",
-        "output/murine_result/SRX1583885-Irf1/00_ologram_stats.tsv",
-        "output/murine_result/ERX1633247-Nanog/00_ologram_stats.tsv"
+    output: expand("output/murine_{kind}/{run}/00_ologram_stats.tsv", run=["SRX1815531-Ctcf","SRX1583885-Irf1","ERX1633247-Nanog"], kind=["result","result_restricted"])
     params: 
         minibatch_number = 20, minibatch_size = 10,
     threads: THREADS_SIMPLE
@@ -729,18 +726,18 @@ rule process_ologram_results_murine:
     """
     Grab the headers, and run the R script for murine data.
     """
-    input: expand("output/murine_result/{run}/00_ologram_stats.tsv", run= ["SRX1815531-Ctcf","SRX1583885-Irf1","ERX1633247-Nanog"])
-    output: "output/murine_result/murine_fig.png"
+    input: expand("output/murine_{kind}/{run}/00_ologram_stats.tsv", run=["SRX1815531-Ctcf","SRX1583885-Irf1","ERX1633247-Nanog"], kind=["result","result_restricted"])
+    output: "output/murine_{kind}/murine_fig.png"
     shell: """
     
     ## Merging OLOGRAM results
     # Print the data and a supplementary column for file names
-    cat output/murine_result/*X*/*tsv | head -n 1 | awk 'BEGIN{{FS=OFS="\t"}}{{print $0,"query"}}'> output/murine_result/all_ologram_results.txt
+    cat output/murine_{wildcards.kind}/*X*/*tsv | head -n 1 | awk 'BEGIN{{FS=OFS="\t"}}{{print $0,"query"}}'> output/murine_{wildcards.kind}/all_ologram_results.txt
     # Print data without header
-    for i in `ls output/murine_result/*X*/*tsv`; do  awk -v f=$i 'BEGIN{{FS=OFS="\t"}}{{print $0,f}}' $i ; done | grep -v nb_intersections_expectation_shuffled >> output/murine_result/all_ologram_results.txt
+    for i in `ls output/murine_{wildcards.kind}/*X*/*tsv`; do  awk -v f=$i 'BEGIN{{FS=OFS="\t"}}{{print $0,f}}' $i ; done | grep -v nb_intersections_expectation_shuffled >> output/murine_{wildcards.kind}/all_ologram_results.txt
 
-    ## Now call the R script
-    Rscript scripts/murine_analysis.R
+    ## Now call the R script, with the point of execution in argument
+    Rscript scripts/murine_analysis.R "./output/murine_{wildcards.kind}/"
     """
 
 

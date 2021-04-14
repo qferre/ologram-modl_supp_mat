@@ -9,7 +9,7 @@ from functools import partial
 import math
 from collections import Counter
 
-from plotnine import ggplot, aes, labs, scale_color_gradient, geom_point, geom_abline, scale_x_log10, scale_y_log10, geom_violin, geom_boxplot, position_dodge, scale_y_log10, xlab, ylab
+from plotnine import ggplot, aes, labs, scale_color_gradient, geom_point, geom_abline, scale_x_log10, scale_y_log10, geom_violin, geom_boxplot, position_dodge, scale_y_log10, xlab, ylab, ggtitle
 
 ROOT_PATH = "./output/ologram_result_scatacseq_pbmc/"
 DATA_ROOT_PATH = "./output/sc_atac_seq_pbmc_data/"
@@ -139,7 +139,8 @@ for length in all_lengths:
         p = (ggplot(data=df_filtered, mapping = aes(x='entropy', y='fc'))
                 + geom_violin(position = position_dodge(1), width = 1)
                 + geom_boxplot(position = position_dodge(1), width = 0.25)
-                + xlab("Entropy") + ylab("Fold change (log2)"))
+                + xlab("Entropy") + ylab("Fold change (log2)")
+                + ggtitle("Order "+str(length)))
 
         p.save(filename = ROOT_PATH + "entropy_graph/entropy_length_" + str(length) + "_fc.png")
 
@@ -148,7 +149,8 @@ for length in all_lengths:
         p = (ggplot(data=df_filtered, mapping = aes(x='entropy', y='s'))
                 + geom_violin(position = position_dodge(1), width = 1)
                 + geom_boxplot(position = position_dodge(1), width = 0.25)
-                + xlab("Entropy") + ylab("True total overlapping bp."))
+                + xlab("Entropy") + ylab("True total overlapping bp.")
+                + ggtitle("Order "+str(length)))
 
         p.save(filename = ROOT_PATH + "entropy_graph/entropy_length_" + str(length) + "_s.png")
 

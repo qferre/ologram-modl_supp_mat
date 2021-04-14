@@ -1,6 +1,11 @@
-# NOTE: this will be executed by a Snakefile, so the point of execution is the root of the entire directory
-this.dir = "./output/murine_result/"
-setwd(this.dir)
+## Collect command line arguments
+# NOTE: For now, hardcoed so that the point of execution is the only argument.
+# This will be executed by a Snakefile, so the point of execution is the root of
+# the entire directory
+args <- commandArgs(trailingOnly = TRUE)
+this_dir <- toString(args[1])
+
+setwd(this_dir)
 print(getwd())
 
 
@@ -90,12 +95,14 @@ dm$Dataset[dm$Dataset %in% c("Nanog","Pou5f1","Klf4", "Sox2")] <- "Stem cells"
 
 
 ### Take the n best combi for each query
-n_best <- 15
+n_best <- 20
 
 dm %>% 
   arrange(desc(query)) %>% 
-  arrange(desc(log10_pval)) %>%  
-  group_by(query) %>% slice(1:(n_best*length(all_features)-1)) %>% ungroup() -> dm_sub
+  arrange(desc(summed_bp_overlaps_true)) %>%
+  group_by(query) %>% 
+  slice(1:(n_best*length(all_features)-1)) %>% 
+  ungroup() -> dm_sub
 
 ### Order queries
 dm_sub$query <- factor(dm_sub$query, levels = c("Nanog", "Ctcf", "Irf1"),
@@ -108,17 +115,17 @@ p1 <- ggplot(dm_sub, aes(y = Factors, x=combination,  fill=Dataset)) +
     scale_size(guide="none") +
     theme(axis.text.x = element_text(angle=0, size=7),
           axis.text.y = element_text(size=7),
-          strip.background = element_blank(),
-          strip.text = element_blank(),
+          #strip.background = element_blank(),
+          #strip.text = element_blank(),
           legend.key.height = unit(1,"line"),
           axis.title.y = element_text(size=8)) +
     scale_color_manual(values=c("#D0AB58", "#3F4EF3", "#A63965")) +
     scale_fill_manual(values=c("#D0AB58", "#3F4EF3", "#A63965")) +
-    facet_wrap(~query,  scale="free_x") +
+    facet_wrap(~query, scale="free_x") +
     scale_x_discrete(name ="Combinations",
                      labels=c(1:n_best)) 
 
-p2 <- ggplot(dm_sub,aes(x=combination, y = log10_pval)) +
+p2 <- ggplot(dm_sub,aes(x=combination, y = log10_pval, fill= factor(degree) )) +
   geom_bar(stat="identity", position="dodge") +
   theme_bw() +
   theme(axis.title.x = element_blank(),
@@ -128,9 +135,10 @@ p2 <- ggplot(dm_sub,aes(x=combination, y = log10_pval)) +
         strip.text = element_blank(),
         strip.background = element_blank(),
         axis.title.y = element_text(size=8)) +
+  scale_fill_manual(name="Combi. order", values=c("#FFC30F", "#1D9A6C", "#104765", "#08062C")) +
   facet_wrap(~query, scale="free_x", strip.position = "bottom")  
 
-p3 <- ggplot(dm_sub,aes(x=combination, y = summed_bp_overlaps_log2_fold_change)) +
+p3 <- ggplot(dm_sub,aes(x=combination, y = summed_bp_overlaps_log2_fold_change, fill = factor(degree) )) +
   geom_bar(stat="identity", position="dodge") +
   theme_bw() +
   theme(axis.title.x = element_blank(),
@@ -138,9 +146,13 @@ p3 <- ggplot(dm_sub,aes(x=combination, y = summed_bp_overlaps_log2_fold_change))
         strip.background = element_blank(),
         strip.text = element_blank(),
         axis.ticks.x = element_blank(),
+        legend.position = "none",
         axis.title.y = element_text(size=8)) +
+  scale_fill_manual(values=c("#FFC30F", "#1D9A6C", "#104765", "#08062C")) +
   facet_wrap(~query, scale="free_x", strip.position = "bottom") +
   ylab(TeX('$log2(\\sum bp_{obs}/ \\sum bp_{sim})$'))  
   
 
-ggsave("murine_fig.png", plot = p2 / p3 / p1, width = 12, height = 8, dpi = 200)
+# Save the combined plot
+combined_plot <- p3 + p2 + p1 + plot_layout(ncol = 1, heights = c(1,1,2))
+ggsave("murine_fig.png", plot = combined_plot, width = 12, height = 8, dpi = 240)
