@@ -64,8 +64,8 @@ for _ in REPEATS:
         transactions = matrix_to_list_of_transactions(X, names)
         X_as_dataframe = pd.DataFrame(X)
 
-        X_low_noise = test_data_for_modl(nflags = N_FLAGS, number_of_sets = size, noise = 0)
-        X_noiseless = test_data_for_modl(nflags = N_FLAGS, number_of_sets = size, noise = LOW_NOISE)
+        X_low_noise = test_data_for_modl(nflags = N_FLAGS, number_of_sets = size, noise = LOW_NOISE)
+        X_noiseless = test_data_for_modl(nflags = N_FLAGS, number_of_sets = size, noise = 0)
 
         # Apriori
         # Cap it to the max number that is not unreasonable
