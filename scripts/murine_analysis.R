@@ -1,13 +1,14 @@
 ## Collect command line arguments
-# NOTE: For now, hardcoed so that the point of execution is the only argument.
-# This will be executed by a Snakefile, so the point of execution is the root of
-# the entire directory
+# NOTE: For now, it is hardcoded. The only argument expected by the script is
+# its point of execution, as it will be executed seperately by a Snakefile.
 args <- commandArgs(trailingOnly = TRUE)
 this_dir <- toString(args[1])
 
 setwd(this_dir)
 print(getwd())
 
+
+# ---------------------------------------------------------------------------- #
 
 # Install packages
 allpkgs <- c("UpSetR", "dplyr", "reshape2", "patchwork", "latex2exp")
@@ -53,7 +54,7 @@ for(i in 1:length(tmp)){
   }
 }
 
-## Prepare a binary matrix with TF as col and combi as row 
+## Prepare a binary matrix with TF as column and combi as row 
 feature_mat <- as.data.frame(feature_mat)
 feature_mat$degree <- rowSums(feature_mat) + 1
 d <- cbind(d, as.matrix(feature_mat))
@@ -75,9 +76,6 @@ dm$value[dm$value == 0] <- NA
 dm$Factors <- dm$variable
 
 
-
-# Previously, we ordered combination levels by p-val
-#dm$combination <- factor(dm$combination, ordered = T, levels = unique(as.character(dm$combination[order(dm$log10_pval, dm$summed_bp_overlaps_log2_fold_change, decreasing = T)])))
 
 ## Order combination levels by *summed basepairs in the true overlaps*
 dm$combination <- factor(dm$combination, ordered = T, levels = unique(as.character(dm$combination[order(dm$summed_bp_overlaps_true, decreasing = T)])))
@@ -115,8 +113,6 @@ p1 <- ggplot(dm_sub, aes(y = Factors, x=combination,  fill=Dataset)) +
     scale_size(guide="none") +
     theme(axis.text.x = element_text(angle=0, size=7),
           axis.text.y = element_text(size=7),
-          #strip.background = element_blank(),
-          #strip.text = element_blank(),
           legend.key.height = unit(1,"line"),
           axis.title.y = element_text(size=8)) +
     scale_color_manual(values=c("#D0AB58", "#3F4EF3", "#A63965")) +
