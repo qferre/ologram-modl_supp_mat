@@ -96,12 +96,12 @@ for _ in REPEATS:
 
 df_bench['scaling_factor'] = df_bench['scaling_factor'].astype(int)
 p = (ggplot(df_bench) + aes('scaling_factor', 'time', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous()
+ + geom_point() + geom_smooth(span=.3) + scale_x_continuous()
  + xlab("Scaling factor (k)") + ylab("Time (seconds)"))
 p.save(filename = OUTPUT_ROOT + "fig3")
 
 p = (ggplot(df_bench) + aes('scaling_factor', 'time', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous() + scale_y_log10()
+ + geom_point() + geom_smooth(span=.3) + scale_x_continuous() + scale_y_log10()
  + xlab("Scaling factor (k)") + ylab("Time (seconds)"))
 p.save(filename = OUTPUT_ROOT + "fig3_log10")
 
@@ -115,12 +115,12 @@ for index, row in df_bench.iterrows():
     df_bench.at[index,'time_relative'] = row['time']/my_minimum_time
 
 p = (ggplot(df_bench) + aes('scaling_factor', 'time_relative', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous()
+ + geom_point() + geom_smooth(span=.3) + scale_x_continuous()
  + xlab("Scaling factor (k)") + ylab("Time (relative)"))
 p.save(filename = OUTPUT_ROOT + "fig3_relative")
 
 
 p = (ggplot(df_bench) + aes('scaling_factor', 'time_relative', color='algo', group='algo')
- + geom_point() + geom_smooth() + scale_x_continuous() + scale_y_log10()
+ + geom_point() + geom_smooth(span=.3) + scale_x_continuous() + scale_y_log10()
  + xlab("Scaling factor (k)") + ylab("Time (relative)"))
 p.save(filename = OUTPUT_ROOT + "fig3_relative_log10")
