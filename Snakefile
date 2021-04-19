@@ -408,8 +408,8 @@ Rules to evaluate MODL time scaling, and scaling of the elementary operations, i
 """
 rule produce_modl_scaling:
     output: 
-        fig1 = "output/benchmark/scaling/fig1.png",
-        fig2 = "output/benchmark/scaling/fig2.png",
+        fig1 = "output/benchmark/scaling/scaling_fig1.png",
+        fig2 = "output/benchmark/scaling/scaling_fig2.png",
     threads: THREADS_SIMPLE_HIGH_COMPUTE
     log:
         err= "output/benchmark/scaling/scaling_benchmark_1_2_ERROR_LOG.txt",
@@ -425,7 +425,7 @@ rule produce_modl_scaling:
     """
 
 rule modl_elementary_scaling_1:
-    output: "output/benchmark/scaling/fig3.png"
+    output: "output/benchmark/scaling/scaling_fig3.png"
     threads: 1
     log:
         err= "output/benchmark/scaling/scaling_benchmark_3_ERROR_LOG.txt",
@@ -437,7 +437,7 @@ rule modl_elementary_scaling_1:
     """
 
 rule modl_elementary_scaling_2:
-    output: "output/benchmark/scaling/fig4.png"
+    output: "output/benchmark/scaling/scaling_fig4.png"
     threads: 1
     log:
         err= "output/benchmark/scaling/scaling_benchmark_4_ERROR_LOG.txt",
@@ -449,7 +449,7 @@ rule modl_elementary_scaling_2:
     """
 
 rule modl_elementary_scaling_3:
-    output: "output/benchmark/scaling/fig5.png"
+    output: "output/benchmark/scaling/scaling_fig5.png"
     threads: 1
     log:
         err= "output/benchmark/scaling/scaling_benchmark_5_ERROR_LOG.txt",
