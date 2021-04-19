@@ -42,9 +42,9 @@ rule final:
                 testing_set = ['ginom','ginom_filtered']),
         ## MODL benchmarks
         "output/benchmark/comparison/done",
-        expand("output/benchmark/scaling/fig{n}.png", n = [1,2]),
+        expand("output/benchmark/scaling/scaling_fig{n}.png", n = [1,2]),
         # Elementary benchmarks
-        expand("output/benchmark/scaling/fig{n}.png", n = [3,4,5])
+        expand("output/benchmark/scaling/scaling_fig{n}.png", n = [3,4,5])
     # shell: """
     # # Produce a summary graph
     # snakemake --forceall --dag | dot -Tsvg > output/dag.svg
@@ -160,7 +160,7 @@ rule prepare_artificial_calibrate:
         filler1 = "output/artificial_data_calibrate/filler1.bed",
         filler2 = "output/artificial_data_calibrate/filler2.bed",
         a = "output/artificial_data_calibrate/data/21pc.bed", 
-        b = "output/artificial_data_calibrate/data/28pc.bed"
+        b = "output/artificial_data_calibrate/data/26pc.bed"
 
     params:
         size=10, length=250   # Note that size is multiplied by 100 later
@@ -178,7 +178,7 @@ rule prepare_artificial_calibrate:
     bedtools shuffle -i {output.query} -excl {output.query} -g input/artificial_simple.genome -noOverlapping -seed 789789 > {output.filler2}
 
 
-    # Calibrating : get a third overlapping, a fifth, a twentieth, etc.
+    # Calibrating : get the first K lines, with different K, of the query file
     # and fill the rest with random regions that do NOT overlap with the query
 
     head -n $((21*{params.size})) {output.query} > {output.a}
@@ -592,7 +592,7 @@ rule run_artificial:
         calibrated = 'output/ologram_result_artificial_calibrate/00_ologram_stats.tsv'
 
     params:
-        minibatch_number = 20, minibatch_size = 10,
+        minibatch_number = 100, minibatch_size = 10,
         peaks = get_peaks_artificial,
         peaks_calibrate = get_peaks_artificial_calibrate
     threads: THREADS_SIMPLE
@@ -627,10 +627,11 @@ rule run_multovl_on_artificial:
 
     output:
         artificial = 'output/multovl_result_artificial_calibrate/artificial.txt',
+        artificial_neg_control = 'output/multovl_result_artificial_calibrate/artificial_neg_control.txt',
         calibrated = 'output/multovl_result_artificial_calibrate/calibrated.txt'
 
     params:
-        shuffle_numbers = 200,
+        shuffle_numbers = 1000,
         peaks = get_peaks_artificial,
         peaks_calibrate = get_peaks_artificial_calibrate,
         peaks_calibrate_as_list = get_peaks_artificial_calibrate_as_list,
@@ -640,9 +641,20 @@ rule run_multovl_on_artificial:
     mkdir -p output/multovl_result_artificial_calibrate
 
     # On full artificial data
+    start=`date +%s.%N`
     {params.multovl_exec} {input.query} {params.peaks} --nointrack \
         --reshufflings {params.shuffle_numbers} --free input/hg38.genome.bed \
         > {output.artificial}
+    end=`date +%s.%N`
+
+    runtime=$( echo "$end - $start" | bc -l )
+    echo "Duration of MULTOVL for full artificial data was (in seconds) : " $runtime > output/multovl_result_artificial_calibrate/timer.txt
+
+
+    # On artificial data, negative control only
+    {params.multovl_exec} {input.query} output/artificial_data/data/neg_control.bed --nointrack \
+        --reshufflings {params.shuffle_numbers} --free input/hg38.genome.bed \
+        > {output.artificial_neg_control}
     
 
     # On simpler, calibrated artificial data
@@ -661,6 +673,8 @@ rule run_multovl_on_artificial:
 
     # Concatenate results for calibrated, with new line between each
     awk 'FNR==1{{print ""}}1' output/multovl_result_artificial_calibrate/partial* > {output.calibrated}
+
+    rm output/multovl_result_artificial_calibrate/partial* # Cleanup
     """
 
 

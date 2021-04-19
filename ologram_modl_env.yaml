@@ -6,10 +6,11 @@ channels:
 dependencies:
   - python>=3.8
   - pygtftk               # Contains OLOGRAM-MODL and all its dependencies
-  - snakemake             # For the workflow
+  - snakemake             # Workflow manager
   - mlxtend               # For FP-growth
   - openjdk               # To run certain /ext for tests
   - r-base>=4.0           # R
   - r-curl                # R package for curl
   - r-hdf5r               # R package for HDF5 data save format
   - scikit-learn==0.24.1  # Hardcode the version for reproducibility
+  - scikit-misc           # Needed by plotnine for a regression

@@ -123,14 +123,14 @@ for _ in REPEATS:
 
 df_bench['set_nb'] = df_bench['set_nb'].astype(int)
 p = (ggplot(df_bench) + aes('set_nb', 'time', color='algo', group='algo')
- + geom_point() + geom_smooth(span=.3) + scale_x_continuous()
+ + geom_point() + geom_smooth(method='gpr', span=.3) + scale_x_continuous()
  + xlab("Number of sets") + ylab("Time (seconds)"))
-p.save(filename = OUTPUT_ROOT + "fig4")
+p.save(filename = OUTPUT_ROOT + "scaling_fig4")
 
 p = (ggplot(df_bench) + aes('set_nb', 'time', color='algo', group='algo')
- + geom_point() + geom_smooth(span=.3) + scale_x_continuous() + scale_y_log10()
+ + geom_point() + geom_smooth(method='gpr', span=.3) + scale_x_continuous() + scale_y_log10()
  + xlab("Number of sets") + ylab("Time (seconds)"))
-p.save(filename = OUTPUT_ROOT + "fig4_log10")
+p.save(filename = OUTPUT_ROOT + "scaling_fig4_log10")
 
 
 # Normalized time to minimum number of sets
@@ -143,12 +143,12 @@ for index, row in df_bench.iterrows():
     df_bench.at[index,'time_relative'] = row['time']/my_minimum_time
 
 p = (ggplot(df_bench) + aes('set_nb', 'time_relative', color='algo', group='algo')
- + geom_point() + geom_smooth(span=.3) + scale_x_continuous()
+ + geom_point() + geom_smooth(method='gpr', span=.3) + scale_x_continuous()
  + xlab("Number of sets") + ylab("Time (relative)"))
-p.save(filename = OUTPUT_ROOT + "fig4_relative")
+p.save(filename = OUTPUT_ROOT + "scaling_fig4_relative")
 
 
 p = (ggplot(df_bench) + aes('set_nb', 'time_relative', color='algo', group='algo')
- + geom_point() + geom_smooth(span=.3) + scale_x_continuous() + scale_y_log10()
+ + geom_point() + geom_smooth(method='gpr', span=.3) + scale_x_continuous() + scale_y_log10()
  + xlab("Number of sets") + ylab("Time (relative)"))
-p.save(filename = OUTPUT_ROOT + "fig4_relative_log10")
+p.save(filename = OUTPUT_ROOT + "scaling_fig4_relative_log10")

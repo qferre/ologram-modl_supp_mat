@@ -63,7 +63,7 @@ df_bench['nb_sets'] = df_bench['nb_sets'].astype(int)
 p = (ggplot(df_bench) + aes('nb_sets', 'time')
  + geom_point() + geom_smooth(span=.3) + scale_x_continuous()
  + xlab("Number of sets") + ylab("Time (seconds)"))
-p.save(filename = OUTPUT_ROOT + "fig1")
+p.save(filename = OUTPUT_ROOT + "scaling_fig1")
 
 
 ## Number of queried words
@@ -85,4 +85,4 @@ df_bench['step'] = df_bench['step'].astype(int)
 p = (ggplot(df_bench) + aes('step', 'time')
  + geom_point() + geom_smooth(span=.3) + scale_x_continuous()
  + xlab("Queried nb. of atoms") + ylab("Time (seconds)"))
-p.save(filename = OUTPUT_ROOT + "fig2")
+p.save(filename = OUTPUT_ROOT + "scaling_fig2")

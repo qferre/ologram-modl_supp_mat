@@ -100,14 +100,14 @@ for _ in REPEATS:
 
 df_bench['lines'] = df_bench['lines'].astype(int)
 p = (ggplot(df_bench) + aes('lines', 'time', color='algo', group='algo')
- + geom_point() + geom_smooth(span=.3) + scale_x_continuous()
+ + geom_point() + geom_smooth(method='gpr', span=.3) + scale_x_continuous()
  + xlab("Number of lines") + ylab("Time (seconds)"))
-p.save(filename = OUTPUT_ROOT + "fig5")
+p.save(filename = OUTPUT_ROOT + "scaling_fig5")
 
 p = (ggplot(df_bench) + aes('lines', 'time', color='algo', group='algo')
- + geom_point() + geom_smooth(span=.3) + scale_x_continuous() + scale_y_log10()
+ + geom_point() + geom_smooth(method='gpr', span=.3) + scale_x_continuous() + scale_y_log10()
  + xlab("Number of lines") + ylab("Time (seconds)"))
-p.save(filename = OUTPUT_ROOT + "fig5_log10")
+p.save(filename = OUTPUT_ROOT + "scaling_fig5_log10")
 
 
 # Normalized time to minimum line number
@@ -120,6 +120,6 @@ for index, row in df_bench.iterrows():
     df_bench.at[index,'time_relative'] = row['time']/my_minimum_time
 
 p = (ggplot(df_bench) + aes('lines', 'time_relative', color='algo', group='algo')
- + geom_point() + geom_smooth(span=.3) + scale_x_continuous()
+ + geom_point() + geom_smooth(method='gpr', span=.3) + scale_x_continuous()
  + xlab("Number of lines") + ylab("Time (relative)"))
-p.save(filename = OUTPUT_ROOT + "fig5_relative")
+p.save(filename = OUTPUT_ROOT + "scaling_fig5_relative")
