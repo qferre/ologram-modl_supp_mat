@@ -3,12 +3,12 @@ Compare MODL to other algorithms using artificial data matrices.
 """
 
 import numpy as np
-np.random.seed(42)
-
 import pandas as pd
 
 import time
 import subprocess
+import warnings
+import random
 
 from pygtftk.stats.intersect.modl.dict_learning import Modl, test_data_for_modl
 from pygtftk.stats.intersect.modl.apriori import Apriori, matrix_to_list_of_transactions, apriori_results_to_matrix
@@ -16,6 +16,10 @@ from pygtftk.stats.intersect.modl.subroutines import learn_dictionary_and_encode
 from pygtftk import utils
 
 ## ---------------------------- Parameters ---------------------------------- ##
+
+np.random.seed(42)
+random.seed(42)
+
 utils.VERBOSITY = 3 # Force debug messages to appear
 N_THREADS = 4
 
@@ -116,8 +120,12 @@ print("-------------------------------")
 # FP-Growth
 from mlxtend.frequent_patterns import fpgrowth
 x_as_dataframe = pd.DataFrame(x)
-fpgrowth(x_as_dataframe, min_support=MIN_SUPPORT)
+fpres = fpgrowth(x_as_dataframe, min_support=MIN_SUPPORT)
 
+
+
+pd.set_option('display.max_rows', 1000)
+print(fpres)
 
 
 # Here, output the matrices to BED files
@@ -141,7 +149,7 @@ with open(OUTPUT_ROOT+'artiftransact.txt', 'w+') as f:
 
 ## ---------- Manual launch of other itemset miner(s)
 
-# Run LCM
+## Run LCM
 command_line = ["java", "-jar", EXT_PATH + "spmf.jar", # Java SPMF toolset
     "run", "LCM",                        # Run this algorithm
     OUTPUT_ROOT + "artiftransact.txt",   # Query file
@@ -155,3 +163,41 @@ command_line = ["java", "-jar", EXT_PATH + "spmf.jar", # Java SPMF toolset
 stdout_captured = subprocess.run(command_line, 
     stdout=subprocess.PIPE, universal_newlines=True).stdout
 
+
+
+
+
+## Run CL-Max (approximate itemset miner)
+
+warnings.filterwarnings('ignore') # Silence NumPy warnings for display
+
+# Load it by running the code (kinda hacky but works for now)
+exec(open(EXT_PATH + "cl-max.py").read())
+
+
+
+# Run a variety of parameters
+# Esp. rounding threshold. And random seeds seemed to change results a lot !
+RANDOM_SEED = 1234
+min_support = 0.1
+for num_cluster in [3,6]:
+    for rounding_threshold in [0.5,0.9]:
+
+        print("-----------------")
+        print("num_cluster =",num_cluster)
+        print("rounding_threshold =",rounding_threshold)
+            
+        np.random.seed(RANDOM_SEED)
+        random.seed(RANDOM_SEED)
+
+        cl_max = CL_MAX(min_support, num_cluster, rounding_threshold)
+
+        # Load dataset
+        cl_max.dataset = pd.DataFrame(x)
+        cl_max.sorted_items = names
+        cl_max.transactions = [[int(i) for i in t] for t in transactions if t] # Remove empties
+        cl_max.maximum = NB_SETS
+        cl_max.remove_non_frequent_single_items()
+
+        # Run the algorithm
+        MFIs = cl_max._CL_MAX()

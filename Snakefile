@@ -36,12 +36,14 @@ rule final:
         # sc-ATAC-Seq and combination entropy
         "output/ologram_result_scatacseq_pbmc/done", 
         # Murine promoters
-        "output/murine_result/murine_fig.png", "output/murine_result_restricted/murine_fig.png",
+        "output/murine_result/murine_fig.png",
+        "output/murine_result_restricted/murine_fig.png",
         # Comparison with GINOM
         expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
                 testing_set = ['ginom','ginom_filtered']),
         ## MODL benchmarks
         "output/benchmark/comparison/done",
+        "output/benchmark/perspective/done",
         expand("output/benchmark/scaling/scaling_fig{n}.png", n = [1,2]),
         # Elementary benchmarks
         expand("output/benchmark/scaling/scaling_fig{n}.png", n = [3,4,5])
@@ -402,6 +404,25 @@ rule produce_modl_comparison:
     """
 
 
+rule produce_modl_perspective:
+    """
+    A perspective application of MODL using supervised loss based on Naive Bayes classifier.
+    """
+    input: "input/hg19.genome"
+    output: "output/benchmark/perspective/done",
+    threads: THREADS_SIMPLE_HIGH_COMPUTE
+    log:
+        err= "output/benchmark/perspective/perspective_ERROR_LOG.txt",
+        out= "output/benchmark/perspective/perspective.txt"
+
+    shell:"""
+    mkdir -p output/benchmark/perspective
+    python scripts/modl_perspective.py 2> {log.err} 1> {log.out}
+
+    # Signal we are done
+    touch {output}
+    """
+
 
 """
 Rules to evaluate MODL time scaling, and scaling of the elementary operations, in parallel
@@ -491,7 +512,7 @@ rule run_on_ginom_data:
     params:
         trs = get_peaks_ginom,
         minibatch_number = 10, minibatch_size = 10,
-        max_combis = 7 # As in the GINOM example
+        max_combis = 7
 
     threads: THREADS_SIMPLE
 
