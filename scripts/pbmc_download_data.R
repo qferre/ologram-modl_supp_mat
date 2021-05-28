@@ -1,3 +1,12 @@
+################################################################################
+## This code is based on the vignette of the Signac package.                  ##
+## Drawn from the following link:                                             ## 
+##      https://satijalab.org/signac/articles/pbmc_vignette.html              ##
+################################################################################
+
+
+
+
 # NOTE : this will be executed by a Snakefile, so the point of execution is the root of the entire directory
 this.dir = "./output/sc_atac_seq_pbmc_data/"
 setwd(this.dir)
