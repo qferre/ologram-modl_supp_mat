@@ -522,6 +522,7 @@ rule run_on_ginom_data:
 
     shell: """
     mkdir -p output/ologram_result_ginom
+    mkdir -p output/ologram_result_ginom_filtered
     
     # With MODL
     gtftk ologram -z -c hg19 -p {input.query} --more-bed {params.trs} \
