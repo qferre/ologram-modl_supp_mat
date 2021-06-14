@@ -1,16 +1,24 @@
 """
 A perspective application of MODL using a supervised loss, based on the 
 performance of a Naive Bayes classifier.
+This will select the combinations (of reference sets) that best predict the
+query set using a Naive Bayes classifier.
 
+This is currently in beta and requires some tuning of the parameters, so is not
+yet available as option in the main command line, but is an interesting perspective.
 
-This currently is not stable enough and requires heavy tuning of the parameters,
-so it can't be used yet in regular code, but is an interesting perspective.
+This file is a fully functional example. To use it, simply replace the filepaths
+at the beginning with the paths to your own files, adjust the parameters if 
+desired, and run the script. 
 """
 
-# Paths to BED files of regions
-QUERY_PATH  = "input/as_ginom/query_som_trans_lung.bed"
-EXCL_PATH   = "input/as_ginom/mappability_human.bed"
-GENOME_PATH = "input/hg19.genome"
+## Paths to BED files of regions
+
+QUERY_PATH  = "input/as_ginom/query_som_trans_lung.bed"        # The query set
+INCL_PATH   = "input/as_ginom/mappability_human.bed"           # Inclusion: the analysis will be limited to the sub-genome designated in this files. Regions outside of it will be discarded.
+GENOME_PATH = "input/hg19.genome"                              # Chromosome sizes
+
+# Reference sets
 MORE_PATHS  = [
     "input/as_ginom/reference_1_hg19_Refseq_promoters_2000bp.bed",
     "input/as_ginom/reference_2_hg19_Refseq_gene_bodies.bed",
@@ -18,17 +26,20 @@ MORE_PATHS  = [
     "input/as_ginom/reference_4_Broad_A549_H3k36me3_Dex.bed",
     "input/as_ginom/reference_5_Broad_A549_H3k79me2_Dex.bed"
 ]
+# The meaning of the combinations  returnedwill always be : query, followed by the reference sets in the order they are given
+# For example, '[101010]' means "Query + Reference 2 (gene bodies) + Reference 4 (H3K36me3)"
 
+
+## Parameters
 
 # Subsampling parameters
-KEEP_N_TIMES_QUERY = 30          # For each '1' line with the query, how many '0' lines without it do we keep ?
-QUERY_WEIGHT = 30                # In the Naive Bayes classifier, how much more do we weigh the presence of the query ?
-
+KEEP_N_TIMES_QUERY = 100          # For each '1' line with the query, how many '0' lines without it do we keep?
+QUERY_WEIGHT = 100                # In the Naive Bayes classifier, how much more do we weigh the presence of the query?
 
 # MODL parameters
-DESIRED_ITEMSETS = 7
+DESIRED_ITEMSETS = 7              # How many interesting combinations should MODL return?
 
-
+RANDOM_SEED = 42
 
 # ---------------------------------------------------------------------------- #
 
@@ -37,6 +48,8 @@ def presence_vector(row, combis):
     Given a list of combinations, returns a vector saying whether they are
     present or absent in this row. The order in the vector is the same as given
     in the combis list.
+
+    This works exactly like an inexact (transitive) count, which is OLOGRAM-MODL's default operating mode.
 
     Example:
 
@@ -66,14 +79,14 @@ import pybedtools
 from sklearn.naive_bayes import GaussianNB
 
 from pygtftk.stats.intersect.overlap_stats_compute import compute_true_intersection
+from pygtftk.stats.intersect.overlap.overlap_regions import does_combi_match_query
 from pygtftk.stats.intersect.modl.dict_learning import Modl
 from pygtftk import utils
 from pygtftk.stats.intersect.read_bed import read_bed_as_list as read_bed
 from pygtftk.utils import chrom_info_as_dict
 from pygtftk import arg_formatter
 
-np.random.seed(42)  # Random seed for reproducibility
-
+np.random.seed(RANDOM_SEED)  # Random seed for reproducibility
 
 
 
@@ -83,7 +96,7 @@ bedsB = [pybedtools.BedTool(bedfilepath).sort().merge() for bedfilepath in MORE_
 
 
 # Do the exclusion manually Generate a fake bed for the entire genome, using the chromsizes
-bed_incl = pybedtools.BedTool(EXCL_PATH)
+bed_incl = pybedtools.BedTool(INCL_PATH)
 chrom_len = chrom_info_as_dict(open(GENOME_PATH, 'r'))
 
 full_genome_bed = [str(chrom) + '\t' + '0' + '\t' + str(chrom_len[chrom]) + '\n' for chrom in chrom_len if chrom != 'all_chrom']
@@ -102,8 +115,34 @@ full_genome_bed_after_excl = read_bed.exclude_concatenate(full_genome_bed, bed_e
 #true_intersection = compute_true_intersection(bedA, bedsB)
 true_intersection = compute_true_intersection(full_genome_bed_after_excl, [bedA] + bedsB)
 flags_matrix = np.array([i[3] for i in true_intersection])
+
+"""
+# NOTE : The length of each intersection is also accessible, in case you want
+# the final matrix to have one row per X base pairs instead of 1 row per intersection/event.
+# For reference, the true_intersection object looks like this: [('chr1', 150, 180, np.array([1,1,0])), ('chr1', 180, 200, np.array([1,1,1])), ('chr1', 350, 380, np.array([1,1,0]))]
+for i in true_intersection: # For each observed intersection...
+    inter_chr, inter_start, inter_stop = i[0], i[1], i[2]   # Get the chromosome, start and end of the observed intersection
+    intersection_length = inter_stop - inter_start          # Deduce the length of the intersection
+    intersection_flags = i[3]                               # Which combination was observed here?
+    # Now you can process it.
+"""
+
 flags_matrix = flags_matrix[:,1:] # Remove first column that represents the fake, full genome BED.
 
+
+# Print unique rows with transitive (inexact) counting
+uniqueValues, occurCount = np.unique(flags_matrix, return_counts=True, axis=0)
+for uniqueRow in uniqueValues:
+    count = 0
+
+    for row in flags_matrix:
+        if does_combi_match_query(
+            tuple(row), 
+            tuple(uniqueRow), 
+            exact = False):
+            count += 1
+    print(uniqueRow, ' - freq = ', count)
+print("------------------")
 
 
 # Perform subsampling of the majority class ('0', meaning query is absent)
@@ -114,6 +153,7 @@ flags_matrix = np.concatenate((flags_matrix_with_query,random_rows))
 
 
 
+# This is the custom error function that we will use
 def custom_error_function_bnb(X_true, X_rebuilt, encoded, dictionary):
     """
     This is a non-pure function that only cares about the dictionary and discards X_true in 
@@ -155,7 +195,6 @@ def custom_error_function_bnb(X_true, X_rebuilt, encoded, dictionary):
     # print(pd.crosstab(Y,Y_pred))
     
     return -score # We want an error, higher means worse
-
 
 
 
