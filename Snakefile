@@ -9,14 +9,19 @@ workdir: os.getcwd()
 #                                 Parameters                                   #
 # ---------------------------------------------------------------------------- #
 
-# When making many runs and merging them with ologram_merge_runs, how many 
-# should we make ?
-N_RUNS_TO_MERGE = 16 
-
 # How many threads to use for...
 THREADS_SIMPLE = 8                  # Jobs with small files (and small RAM cost)
 THREADS_SIMPLE_HIGH_COMPUTE = 8     # Simple jobs but with demanding algorithms (ie. MODL)
 THREADS_DEMANDING = 4               # Jobs with a potentially high RAM cost per thread
+
+# When making many runs and merging them with ologram_merge_runs, how many 
+# should we make ?
+N_RUNS_TO_MERGE = 16 
+
+# For the tail estimation, how many runs to perform to get the final empirical p-value ?
+# At present, each run does 2000 shuffles.
+DEEP_SAMPLING_N_RUNS_TO_MERGE = 500
+
 
 # ---------------------------------------------------------------------------- #
 
@@ -28,6 +33,8 @@ rule final:
         expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
                 testing_set = ['artificial','artificial_calibrate']), 
         "output/multovl_result_artificial_calibrate/calibrated.txt", # MULTOVL test
+        "output/ologram_result_artificial_finesse/ologram_depth_analysis.pdf", # Accuracy on distribution tails 
+        "output/beta_fitting_mom_precision/variance.png", # Beta fitting would-be precision
         # MCF7 - FOXA1 as query
         expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
             testing_set = ['mcf7', 'mcf7_filtered','mcf7_manual']),
@@ -96,6 +103,7 @@ rule uncompress:
         "input/as_ginom/mappability_human.bed",
         "input/as_ginom/query_som_trans_lung.bed",
         "input/mcf7/foxa1.bed",
+        "input/hg19.genome",
         "input/hg38.genome",
         "input/artificial_simple.genome",
 
@@ -190,6 +198,36 @@ rule prepare_artificial_calibrate:
     tail -n $((74*{params.size})) {output.filler2} >> {output.b}
     """
 
+
+
+rule prepare_artificial_fine:
+    """
+    Parameters tuned to have a p-val around 1E-5, creating "finesse" artificial
+    data, that can still reasonably be evaluated with ~1 million shuffles.
+    Used for depth analysis (accuracy on distribution tails)
+    """
+
+    output:
+        a="output/artificial_data_finesse/A.bed",
+        b="output/artificial_data_finesse/B.bed",
+        genome="output/artificial_data_finesse/artificial_finesse.genome",
+
+    shell: '''
+    # Prepare input and output dir
+    mkdir -p output/artificial_data_finesse
+    mkdir -p output/ologram_result_artificial_finesse
+
+    # Prepare genome
+    printf "chr1\t100000000\nchr2\t100000000\nchr3\t100000000\nchr4\t100000000\nchr5\t100000000\n" > {output.genome}
+
+    # Draw regions
+    bedtools random -g {output.genome} -n 10000 -l 1000 -seed 42021958 | bedtools sort > {output.a}
+
+    # Get some regions from A, and randomize the rest
+    head -n 51 {output.a} > {output.b}.temp
+    bedtools random -g {output.genome} -n 10000 -l 1000 -seed 98131240 >> {output.b}.temp
+    bedtools sort -i {output.b}.temp > {output.b}
+    '''
 
 
 rule prepare_sc_atac_seq_bedfiles:
@@ -619,6 +657,8 @@ rule run_artificial:
         peaks_calibrate = get_peaks_artificial_calibrate
     threads: THREADS_SIMPLE
     shell:"""
+    mkdir -p output/ologram_result
+    mkdir -p output/ologram_result_artificial
 
     # Run on artificial data
     gtftk ologram -z -c hg38 -p {input.query} --more-bed {params.peaks} \
@@ -702,6 +742,203 @@ rule run_multovl_on_artificial:
 
 
 
+rule ologram_depth_analysis:
+    """
+    For the fit of a Negative Binomial, see how accurately the tail reflects the tail of the true distribution.
+
+    Sample the empirical p-value very deeply (~1 million shufflings) and compare to the p-value based on a fitted
+    Neg Binom with less shuffles, which is computationally cheaper.
+    
+    This rule is a hub that calls for all the TSV results and concatenates them for further processing.
+    """
+    input: "output/ologram_result_artificial_finesse/small_done", "output/ologram_result_artificial_finesse/medium_done", "output/ologram_result_artificial_finesse/large_done"
+    output: r="output/ologram_result_artificial_finesse/merged_ologram_test.tsv"
+    shell:'''
+    cat output/ologram_result_artificial_finesse/ologram_output/*.tsv > {output.r}
+    '''
+
+
+rule depth_minibatch_small:
+    input:         
+        a="output/artificial_data_finesse/A.bed",
+        b="output/artificial_data_finesse/B.bed",
+        genome="output/artificial_data_finesse/artificial_finesse.genome",
+
+    output: "output/ologram_result_artificial_finesse/small_done"
+    threads: THREADS_SIMPLE_HIGH_COMPUTE
+    shell:'''
+    MINIBATCH_SIZE=10
+
+    for MINIBATCH_NB in 1 2 5 10 15 20 35
+    do
+      for TRYNUMBER in $(seq 1 40)
+      do
+        gtftk ologram -ms $MINIBATCH_SIZE -mn $MINIBATCH_NB -p {input.a} \
+            --more-bed {input.b} -z -c {input.genome} -V 1 -s ${{TRYNUMBER}} -k {threads}\
+            --more-bed-labels artificial_minibatches_${{MINIBATCH_NB}}_try_num_${{TRYNUMBER}} \
+            --force-chrom-peak   --force-chrom-more-bed\
+            -o output/ologram_result_artificial_finesse/ologram_output
+      done
+    done
+    touch {output}
+    '''
+
+rule depth_minibatch_medium:
+    input: 
+        a="output/artificial_data_finesse/A.bed",
+        b="output/artificial_data_finesse/B.bed",
+        genome="output/artificial_data_finesse/artificial_finesse.genome",
+    output: "output/ologram_result_artificial_finesse/medium_done"
+    threads: THREADS_SIMPLE_HIGH_COMPUTE
+    shell:'''
+    MINIBATCH_SIZE=10
+    for MINIBATCH_NB in 50 100 250
+    do
+      for TRYNUMBER in $(seq 1 8)
+      do
+        gtftk ologram -ms $MINIBATCH_SIZE -mn $MINIBATCH_NB -p {input.a} \
+            --more-bed {input.b} -z -c {input.genome} -V 1 -k {threads} -s ${{TRYNUMBER}}  \
+            --more-bed-labels artificial_minibatches_${{MINIBATCH_NB}}_try_num_${{TRYNUMBER}} \
+            --force-chrom-peak   --force-chrom-more-bed\
+            -o output/ologram_result_artificial_finesse/ologram_output
+      done
+    done
+    touch {output}
+    '''
+
+rule depth_minibatch_large:
+    input:
+        a="output/artificial_data_finesse/A.bed",
+        b="output/artificial_data_finesse/B.bed",
+        genome="output/artificial_data_finesse/artificial_finesse.genome",
+    output: "output/ologram_result_artificial_finesse/large_done"
+    threads: THREADS_SIMPLE_HIGH_COMPUTE
+    shell:'''
+    MINIBATCH_SIZE=10
+    MINIBATCH_NB=500
+    for TRYNUMBER in $(seq 1 3)
+    do
+        gtftk ologram -ms $MINIBATCH_SIZE -mn $MINIBATCH_NB -p {input.a} \
+            --more-bed {input.b} -z -c {input.genome} -V 1 -k {threads} -s ${{TRYNUMBER}} \
+            --more-bed-labels artificial_minibatches_${{MINIBATCH_NB}}_try_num_${{TRYNUMBER}} \
+            --force-chrom-peak  --force-chrom-more-bed\
+            -o output/ologram_result_artificial_finesse/ologram_output
+    done
+    touch {output}
+    '''
+
+
+
+
+
+rule depth_true:
+    """
+    Perform the 1 million shuffles, 2000 at a time to estimate the empirical p-value.
+    """
+    input:
+        a="output/artificial_data_finesse/A.bed",
+        b="output/artificial_data_finesse/B.bed",
+        genome="output/artificial_data_finesse/artificial_finesse.genome",
+        p="output/ologram_result_artificial_finesse/large_done"
+    output: "output/ologram_result_artificial_finesse/truth/run_{i}/00_ologram_stats.tsv"
+    threads: THREADS_SIMPLE_HIGH_COMPUTE
+        # TODO Use fewer threads so they can be run in parallel ?
+
+    params:
+        minibatch_number = 16, minibatch_size = 125,
+        # NOTE Update depth_merge_runs' ori-shuffles argument if you change this
+    shell:'''
+    gtftk ologram -p {input.a} --more-bed {input.b} \
+        -mn {params.minibatch_number} -ms {params.minibatch_size} \
+        -z -c {input.genome} -V 1 --no-date -k {threads} -s {wildcards.i} \
+        --force-chrom-peak --force-chrom-more-bed \
+        -o output/ologram_result_artificial_finesse/truth/run_{wildcards.i}
+    '''
+
+
+
+rule depth_true_histogram:
+    """
+    Try to keep an histogram made on 32000 shuffles, for illustartion purposes.
+    """
+    input:
+        a="output/artificial_data_finesse/A.bed",
+        b="output/artificial_data_finesse/B.bed",
+        genome="output/artificial_data_finesse/artificial_finesse.genome",
+        p="output/ologram_result_artificial_finesse/large_done"
+    output: "output/ologram_result_artificial_finesse/truth_histogram/00_ologram_stats.tsv"
+    threads: THREADS_SIMPLE_HIGH_COMPUTE
+        # TODO Use fewer threads so they can be run in parallel ?
+
+    params:
+        minibatch_number = 160, minibatch_size = 200,
+        # NOTE Update depth_merge_runs' ori-shuffles argument if you change this
+    shell:'''
+    gtftk ologram -p {input.a} --more-bed {input.b} \
+        -mn {params.minibatch_number} -ms {params.minibatch_size} \
+        -z -c {input.genome} -V 1 --no-date -k {threads} \
+        --force-chrom-peak --force-chrom-more-bed \
+        --display-fit-quality -K output/ologram_result_artificial_finesse/truth_fit \
+        -o output/ologram_result_artificial_finesse/truth_histogram
+    '''
+
+
+rule bad_fit:
+    """
+    Example of where the neg binom distribution fits poorly, when there are too few regions on each chromosome.
+    """
+    output: "output/ologram_bad_fit/bad_fit_done"
+    shell:"""
+    mkdir -p output/ologram_bad_fit
+
+    printf "chr1\t100000000\nchr2\t100000000\nchr3\t100000000\nchr4\t100000000\nchr5\t100000000\n" > output/ologram_bad_fit/my.genome
+    bedtools random -g my.genome -n 100 -l 100000 -seed 42021958 | bedtools sort > output/ologram_bad_fit/A.bed
+    head -n 10 A.bed > output/ologram_bad_fit/B_tmp.bed
+    bedtools random -g my.genome -n 90  -l 100000 -seed 98131240 >> output/ologram_bad_fit/B_tmp.bed
+    bedtools sort -i output/ologram_bad_fit/B_tmp.bed > output/ologram_bad_fit/B.bed
+
+    gtftk ologram -ms 250 -mn 100 -p output/ologram_bad_fit/A.bed --more-bed output/ologram_bad_fit/B.bed -z -c output/ologram_bad_fit/my.genome -V 1 --no-date -o output/ologram_bad_fit/ -s 42 -k 8 --display-fit-quality -K output/ologram_bad_fit/tmp_files
+    
+    touch output/ologram_bad_fit/bad_fit_done
+    """
+
+
+
+
+rule depth_merge_runs:
+    """
+    This rules acts as a hub by merging the various runs to get the final p-value.
+    """
+    input: 
+        expand("output/ologram_result_artificial_finesse/truth/run_{runid}/00_ologram_stats.tsv", runid = range(DEEP_SAMPLING_N_RUNS_TO_MERGE)),
+        "output/ologram_bad_fit/bad_fit_done", # Also ask for the bad fit examples
+        "output/ologram_result_artificial_finesse/truth_histogram/00_ologram_stats.tsv"
+    output: "output/ologram_result_artificial_finesse/truth/merged_batches_truth.tsv"
+    shell: """
+    gtftk ologram_merge_runs --inputfiles `ls output/ologram_result_artificial_finesse/truth/*/*.tsv` -o {output} -V 3 --ori-shuffles 2000
+    """
+
+
+rule ologram_depth_analysis_plot:
+    input: 
+        merged = "output/ologram_result_artificial_finesse/merged_ologram_test.tsv",
+        truth = "output/ologram_result_artificial_finesse/truth/merged_batches_truth.tsv",
+    output: "output/ologram_result_artificial_finesse/ologram_depth_analysis.pdf", 
+    script:
+        "scripts/depth_boxplot.py"
+
+
+rule beta_precision_mom:
+    """
+    Show method-of-moments fitting of a beta distribution is hard with few samples.
+    """
+    output:
+        a= "output/beta_fitting_mom_precision/alpha.png",
+        b= "output/beta_fitting_mom_precision/beta.png",
+        v= "output/beta_fitting_mom_precision/variance.png"
+    script:
+        "scripts/beta_precision.py"
+
 
 rule run_ologram_sc_atac_seq:
     """
@@ -736,7 +973,7 @@ rule ologram_sc_atac_seq_merge_runs:
     input: expand("output/ologram_result_scatacseq_pbmc/run_{runid}/00_ologram_stats.tsv", runid = range(N_RUNS_TO_MERGE))
     output: "output/ologram_result_scatacseq_pbmc/merged_batches_result.tsv"
     shell: """
-    gtftk ologram_merge_runs --inputfiles `ls output/ologram_result_scatacseq_pbmc/*/*.tsv` -o {output} -V 3
+    gtftk ologram_merge_runs --inputfiles `ls output/ologram_result_scatacseq_pbmc/*/*.tsv` -o {output} -V 3 --ori-shuffles 4
     """
 
 
