@@ -17,6 +17,8 @@ from pygtftk.stats.beta import fit_beta
 # Graph paths
 res_file_a = snakemake.output["a"]   
 res_file_b = snakemake.output["b"] 
+res_file_min = snakemake.output["mini"] 
+res_file_max = snakemake.output["maxi"] 
 res_file_v = snakemake.output["v"] 
 
 # Create directories if needed
@@ -89,6 +91,26 @@ meanplot.add_artist(at)
 
 plt.savefig(res_file_b)
 plt.close()
+
+
+### And min and max
+
+meanplot = result_df.boxplot(column=['mhat'], by='Number of samples')
+plt.axhline(y=0, color='r', linestyle='-')
+at = AnchoredText("True minimum = "+str(0), prop=dict(size=8), frameon=True, loc='upper right')
+at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
+meanplot.add_artist(at)
+plt.savefig(res_file_min)
+plt.close()
+
+meanplot = result_df.boxplot(column=['chat'], by='Number of samples')
+plt.axhline(y=1, color='r', linestyle='-')
+at = AnchoredText("True maximum = "+str(1), prop=dict(size=8), frameon=True, loc='upper right')
+at.patch.set_boxstyle("round,pad=0.,rounding_size=0.2")
+meanplot.add_artist(at)
+plt.savefig(res_file_max)
+plt.close()
+
 
 ### And for variance, to show Neg Binom fitting would thus be better
 

@@ -28,32 +28,32 @@ DEEP_SAMPLING_N_RUNS_TO_MERGE = 500
 ## Query the final trees and the benchmarks
 rule final:
     input: 
-        ## OLOGRAM results
-        # Artificial data and calibration
-        expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
-                testing_set = ['artificial','artificial_calibrate']), 
-        "output/multovl_result_artificial_calibrate/calibrated.txt", # MULTOVL test
-        "output/ologram_result_artificial_finesse/ologram_depth_analysis.pdf", # Accuracy on distribution tails 
+        # ## OLOGRAM results
+        # # Artificial data and calibration
+        # expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
+        #         testing_set = ['artificial','artificial_calibrate']), 
+        # "output/multovl_result_artificial_calibrate/calibrated.txt", # MULTOVL test
+        # "output/ologram_result_artificial_finesse/ologram_depth_analysis.pdf", # Accuracy on distribution tails 
         "output/beta_fitting_mom_precision/variance.png", # Beta fitting would-be precision
-        # MCF7 - FOXA1 as query
-        expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
-            testing_set = ['mcf7', 'mcf7_filtered','mcf7_manual']),
-        # MCF7 - full DHS as query
-        "output/tree_results/ologram_result_tree_mcf7_full_dhs.pdf",
-        # sc-ATAC-Seq and combination entropy
-        "output/ologram_result_scatacseq_pbmc/done", 
-        # Murine promoters
-        "output/murine_result/murine_fig.png",
-        "output/murine_result_restricted/murine_fig.png",
-        # Comparison with GINOM
-        expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
-                testing_set = ['ginom','ginom_filtered']),
-        ## MODL benchmarks
-        "output/benchmark/comparison/done",
-        "output/benchmark/perspective/done",
-        expand("output/benchmark/scaling/scaling_fig{n}.png", n = [1,2]),
-        # Elementary benchmarks
-        expand("output/benchmark/scaling/scaling_fig{n}.png", n = [3,4,5])
+        # # MCF7 - FOXA1 as query
+        # expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
+        #     testing_set = ['mcf7', 'mcf7_filtered','mcf7_manual']),
+        # # MCF7 - full DHS as query
+        # "output/tree_results/ologram_result_tree_mcf7_full_dhs.pdf",
+        # # sc-ATAC-Seq and combination entropy
+        # "output/ologram_result_scatacseq_pbmc/done", 
+        # # Murine promoters
+        # "output/murine_result/murine_fig.png",
+        # "output/murine_result_restricted/murine_fig.png",
+        # # Comparison with GINOM
+        # expand("output/tree_results/ologram_result_tree_{testing_set}.pdf",
+        #         testing_set = ['ginom','ginom_filtered']),
+        # ## MODL benchmarks
+        # "output/benchmark/comparison/done",
+        # "output/benchmark/perspective/done",
+        # expand("output/benchmark/scaling/scaling_fig{n}.png", n = [1,2]),
+        # # Elementary benchmarks
+        # expand("output/benchmark/scaling/scaling_fig{n}.png", n = [3,4,5])
     # shell: """
     # # Produce a summary graph
     # snakemake --forceall --dag | dot -Tsvg > output/dag.svg
@@ -933,9 +933,11 @@ rule beta_precision_mom:
     Show method-of-moments fitting of a beta distribution is hard with few samples.
     """
     output:
-        a= "output/beta_fitting_mom_precision/alpha.png",
-        b= "output/beta_fitting_mom_precision/beta.png",
-        v= "output/beta_fitting_mom_precision/variance.png"
+        a = "output/beta_fitting_mom_precision/alpha.png",
+        b = "output/beta_fitting_mom_precision/beta.png",
+        mini = "output/beta_fitting_mom_precision/minimum.png",
+        maxi = "output/beta_fitting_mom_precision/maximum.png",
+        v = "output/beta_fitting_mom_precision/variance.png"
     script:
         "scripts/beta_precision.py"
 
