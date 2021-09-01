@@ -659,6 +659,7 @@ rule run_artificial:
     shell:"""
     mkdir -p output/ologram_result
     mkdir -p output/ologram_result_artificial
+    mkdir -p output/ologram_result_artificial_calibrate
 
     # Run on artificial data
     gtftk ologram -z -c hg38 -p {input.query} --more-bed {params.peaks} \
